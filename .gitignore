@@ -4,5 +4,8 @@ node_modules/
 # Yarn
 yarn-error.log*
 
+# VSCode
+.vscode/
+
 # Build
 dist/
