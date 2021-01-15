@@ -1,0 +1,24 @@
+{
+  "name": "suo-parser",
+  "version": "0.0.1",
+  "description": "A timeline parser for FFXIV/ACT plugins",
+  "main": "dist/index.js",
+  "bin": {
+    "suo": "bin/suo"
+  },
+  "author": {
+    "name": "Maiko Tan",
+    "email": "maiko.tan.coding@gmail.com",
+    "url": "https://github.com/MaikoTan"
+  },
+  "license": "MIT",
+  "prettier": {
+    "printWidth": 120,
+    "tabWidth": 2,
+    "semi": true,
+    "singleQuote": false,
+    "trailingComma": "all",
+    "bracketSpacing": true,
+    "arrowParens": "always"
+  }
+}
