@@ -1,0 +1,19 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const { Tokenizer } = require("../dist/tokenizer");
+const file = process.argv[2];
+
+fs.readFile(file, "utf8", (err, data) => {
+  if (err) {
+    throw err;
+  }
+  const tokenizer = new Tokenizer(data);
+  const tokens = [];
+  while (tokenizer.hasNextToken()) {
+    const token = tokenizer.next();
+    tokens.push(token);
+  }
+
+  console.log(JSON.stringify(tokens, null, 2));
+});
