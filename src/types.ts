@@ -6,6 +6,7 @@ export interface BaseNode {
 
 export type Node = 
   | Program
+  | CommentLine
   | StringLiteral
   | NumericLiteral
   | RegExpLiteral
@@ -24,6 +25,12 @@ interface SourceLocation {
 interface Position {
   line: number; // 1-indexed
   column: number; // 0-indexed
+}
+
+export interface CommentLine extends BaseNode {
+  type: "CommentLine";
+  value: string;
+  raw: string;
 }
 
 export interface StringLiteral extends BaseNode {
@@ -84,14 +91,14 @@ export interface Entry extends BaseNode {
 export type Literal = StringLiteral | NumericLiteral | RegExpLiteral;
 export type Statement = SyncStatement | WindowStatement | JumpStatement | DurationStatement | HideAllStatement;
 
-interface Token {
+export interface Token {
   type: string;
   loc: SourceLocation;
   range: [number, number];
   value: string;
 }
 
-interface Program extends BaseNode {
+export interface Program extends BaseNode {
   type: "Program";
   body: Array<Statement>;
   sourceType: "script" | "module";
