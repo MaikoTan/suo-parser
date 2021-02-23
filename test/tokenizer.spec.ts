@@ -5,25 +5,24 @@ describe("Tokenizer", () => {
   it("should tokenize a simple timeline entry", () => {
     const input = '100 "name"';
     const tokens = new Tokenizer(input);
-    let next = tokens.next();
+    let next = tokens.nextToken();
     expect(next.type).equals("NumericLiteral");
     expect(next.value).equals("100");
     expect(next.start).equals(0);
     expect(next.end).equals(3);
-    next = tokens.next(); // whitespace
-    next = tokens.next();
+    next = tokens.nextToken();
     expect(next.type).equals("StringLiteral");
     expect(next.value).equals("name");
     expect(next.start).equals(4);
     expect(next.end).equals(10);
-    next = tokens.next(); // EOF
+    next = tokens.nextToken(); // EOF
     expect(next.type).equals("EOF");
   });
 
   it("should tokenize string with escape", () => {
     const input = '"\\""';
     const tokens = new Tokenizer(input);
-    let next = tokens.next();
+    let next = tokens.nextToken();
     expect(next.type).equals("StringLiteral");
     expect(next.value).equals('"');
   });
@@ -31,11 +30,10 @@ describe("Tokenizer", () => {
   it("should tokenize string mixup with single and double quotes", () => {
     const input = "\"I'm\" 'str\"ing'";
     const tokens = new Tokenizer(input);
-    let next = tokens.next();
+    let next = tokens.nextToken();
     expect(next.type).equals("StringLiteral");
     expect(next.value).equals("I'm");
-    next = tokens.next(); // whitespace
-    next = tokens.next();
+    next = tokens.nextToken();
     expect(next.type).equals("StringLiteral");
     expect(next.value).equals('str"ing');
   });
@@ -43,15 +41,13 @@ describe("Tokenizer", () => {
   it("should tokenize a timeline entry with a comment", () => {
     const input = '10.0 "name" # comment';
     const tokens = new Tokenizer(input);
-    let next = tokens.next();
+    let next = tokens.nextToken();
     expect(next.type).equals("NumericLiteral");
     expect(next.value).equals("10.0");
-    next = tokens.next(); // whitespace
-    next = tokens.next();
+    next = tokens.nextToken();
     expect(next.type).equals("StringLiteral");
     expect(next.value).equals("name");
-    next = tokens.next(); // whitespace
-    next = tokens.next(); // comment
+    next = tokens.nextToken(); // comment
     expect(next.type).equals("Comment");
     expect(next.value).equals(" comment");
     expect(next.raw).equals("# comment");
@@ -60,13 +56,12 @@ describe("Tokenizer", () => {
   it("should tokenize sync command with regex", () => {
     const input = "sync /regexp/";
     const tokens = new Tokenizer(input);
-    let next = tokens.next();
+    let next = tokens.nextToken();
     expect(next.type).equals("Keyword");
     expect(next.value).equals("sync");
     expect(next.start).equals(0);
     expect(next.end).equals(4);
-    next = tokens.next(); // whitespace
-    next = tokens.next();
+    next = tokens.nextToken();
     expect(next.type).equals("RegularExpression");
     expect(next.value).equals("regexp");
     expect(next.raw).equals("/regexp/");
@@ -78,24 +73,18 @@ describe("Tokenizer", () => {
     const input = "window 10.0\nwindow 1,1";
     const tokens = new Tokenizer(input);
     const tokenTypes = [
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
+      tokens.nextToken(),
+      tokens.nextToken(),
+      tokens.nextToken(),
+      tokens.nextToken(),
+      tokens.nextToken(),
+      tokens.nextToken(),
+      tokens.nextToken(),
     ].map((token) => token.type);
     expect(tokenTypes).deep.equals([
       "Keyword",
-      "Whitespace",
       "NumericLiteral",
-      "NewLine",
       "Keyword",
-      "Whitespace",
       "NumericLiteral",
       "Punctuator",
       "NumericLiteral",
@@ -107,22 +96,16 @@ describe("Tokenizer", () => {
     const input = "jump 10.0\njump 10";
     const tokens = new Tokenizer(input);
     const tokenTypes = [
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
-      tokens.next(),
+      tokens.nextToken(),
+      tokens.nextToken(),
+      tokens.nextToken(),
+      tokens.nextToken(),
+      tokens.nextToken(),
     ].map((token) => token.type);
     expect(tokenTypes).deep.equals([
       "Keyword",
-      "Whitespace",
       "NumericLiteral",
-      "NewLine",
       "Keyword",
-      "Whitespace",
       "NumericLiteral",
       "EOF",
     ]);

@@ -51,12 +51,6 @@ export interface RegularExpressionToken extends BaseToken {
   type: "RegularExpression";
   value: string;
 }
-export interface WhitespaceToken extends BaseToken {
-  type: "Whitespace";
-}
-export interface NewLineToken extends BaseToken {
-  type: "NewLine";
-}
 export interface UnknownToken extends BaseToken {
   type: "Unknown";
   value: string;
@@ -72,8 +66,6 @@ export type Token =
   | PunctuatorToken
   | CommentToken
   | RegularExpressionToken
-  | WhitespaceToken
-  | NewLineToken
   | UnknownToken;
 
 const keywords = ["sync", "window", "jump", "duration", "hideall"] as const;
@@ -86,6 +78,11 @@ export class Tokenizer {
   column: number;
   index: number;
 
+  /**
+   * cache the next token
+   */
+  private queue: Token[] = [];
+
   constructor(sourceCode: string) {
     this.sourceCode = sourceCode;
     this.line = 1;
@@ -93,7 +90,19 @@ export class Tokenizer {
     this.index = 0;
   }
 
-  peek(): Token {
+  peekToken(): Token {
+    if (this.queue.length > 0) {
+      const token = this.queue[0];
+      this.queue.pop();
+      return token;
+    }
+
+    const token = this.nextToken();
+    this.queue.push(token);
+    return token;
+  }
+
+  nextToken(): Token {
     if (this.index >= this.sourceCode.length) {
       return {
         type: "EOF",
@@ -113,42 +122,16 @@ export class Tokenizer {
       };
     }
 
-    let line = this.line;
-    let column = this.column;
-
-    let offset = 0;
-
-    const char = this.peekChar(offset);
+    const char = this.peek();
     if (char === "#") {
       return this.parseComment();
     }
-    if (this.isLineBreak(char)) {
-      let raw = char;
-      // Linux: "\n"  Windows: "\r\n"  Mac: "\r"
-      if (char === "\r" && this.peekChar(1) === "\n") raw += this.peekChar(offset + 1);
 
-      const token: NewLineToken = {
-        type: "NewLine",
-        start: this.index,
-        end: this.index + raw.length,
-        loc: {
-          start: {
-            line: line,
-            column: column,
-          },
-          end: {
-            line: line,
-            column: column + raw.length,
-          },
-        },
-        raw: raw,
-      };
-      line++;
-      return token;
+    if (this.isWhitespace(char)) {
+      this.eatWhitespace();
+      return this.nextToken();
     }
-    if (char === " " || char === "\t") {
-      return this.parseWhitespace();
-    }
+
     if (char === ",") {
       const token: PunctuatorToken = {
         type: "Punctuator",
@@ -157,23 +140,25 @@ export class Tokenizer {
         end: this.index + 1,
         loc: {
           start: {
-            line: line,
-            column: column,
+            line: this.line,
+            column: this.column,
           },
           end: {
-            line: line,
-            column: column + 1,
+            line: this.line,
+            column: this.column + 1,
           },
         },
         raw: char,
       };
+      this.index++;
+      this.column++;
       return token;
     }
     if (char === "'" || char === '"') {
       return this.parseStringLiteral();
     }
     if (char === ".") {
-      const next = this.peekChar(1);
+      const next = this.peek(1);
       if (next >= "0" && next <= "9") {
         return this.parseNumericLiteral();
       }
@@ -184,16 +169,18 @@ export class Tokenizer {
         value: char,
         loc: {
           start: {
-            line: line,
-            column: column,
+            line: this.line,
+            column: this.column,
           },
           end: {
-            line: line,
-            column: column + 1,
+            line: this.line,
+            column: this.column + 1,
           },
         },
         raw: char,
       };
+      this.index++;
+      this.column++;
       return token;
     }
     if (char >= "0" && char <= "9") {
@@ -210,70 +197,65 @@ export class Tokenizer {
 
   private parseRegularExpression(): RegularExpressionToken {
     const start = this.index;
-    let line = this.line;
-    let column = this.column;
-
-    let offset = 1; // skip "/"
+    this.index++; // skip "/"
+    this.column++;
 
     let value = "";
-    let char = this.peekChar(offset);
+    let char = this.peek();
     while (char !== "\n" && char !== "") {
       if (char === "/") {
-        offset++;
-        column++;
+        this.index++;
+        this.column++;
         break;
       }
       if (char === "\\") {
-        value += "\\" + this.peekChar(offset + 1);
-        offset++;
-        column++;
+        value += "\\" + this.peek(1);
+        this.index++;
+        this.column++;
       }
       value += char;
-      offset++;
-      column++;
-      char = this.peekChar(offset);
+      this.index++;
+      this.column++;
+      char = this.peek();
     }
     return {
       type: "RegularExpression",
       value,
       start,
-      end: this.index + offset,
+      end: this.index,
       loc: {
         start: {
-          line: line,
-          column: column,
+          line: this.line,
+          column: start,
         },
         end: {
-          line: line,
-          column: column + value.length,
+          line: this.line,
+          column: this.column ,
         },
       },
-      raw: this.sourceCode.substring(start, this.index + offset),
+      raw: this.sourceCode.substring(start, this.index),
     };
   }
 
   private parseIdentifier(): KeywordToken | IdentifierToken | UnknownToken {
     const start = this.index;
-    let line = this.line;
-    let column = this.column;
+    const columnStart = this.column;
 
-    let offset = 0;
-
-    let char = this.peekChar(offset);
+    let char = this.peek();
     let value = "";
     while (char !== "\n" && char !== "") {
       if (char >= "a" && char <= "z") {
         value += char;
-        offset++;
-        column++;
+        this.index++;
+        this.column++;
       } else if (char >= "A" && char <= "Z") {
         value += char;
-        offset++;
-        column++;
+        this.index++;
+        this.column++;
       } else {
         break;
       }
-      char = this.peekChar(offset);
+      char = this.peek();
     }
 
     if (value === "") {
@@ -281,18 +263,18 @@ export class Tokenizer {
         type: "Unknown",
         value,
         start,
-        end: this.index + offset,
+        end: this.index,
         loc: {
           start: {
-            line: line,
-            column: column,
+            line: this.line,
+            column: columnStart,
           },
           end: {
-            line: line,
-            column: column + value.length,
+            line: this.line,
+            column: this.column,
           },
         },
-        raw: this.sourceCode.substring(start, this.index + offset),
+        raw: this.sourceCode.substring(start, this.index),
       };
     }
     // TODO: don't know why `includes` check function is strict typed
@@ -301,191 +283,164 @@ export class Tokenizer {
         type: "Keyword",
         value,
         start,
-        end: this.index + offset,
+        end: this.index,
         loc: {
           start: {
-            line: line,
-            column: column,
+            line: this.line,
+            column: columnStart,
           },
           end: {
-            line: line,
-            column: column + value.length,
+            line: this.line,
+            column: this.column,
           },
         },
-        raw: this.sourceCode.substring(start, this.index + offset),
+        raw: this.sourceCode.substring(start, this.index),
       };
     }
-
-    // although there is no literal `identifier` in a timeline
     return {
       type: "Identifier",
       value,
       start,
-      end: this.index + offset,
+      end: this.index,
       loc: {
         start: {
-          line: line,
-          column: column,
-        },
-        end: {
-          line: line,
-          column: column + value.length,
-        },
-      },
-      raw: this.sourceCode.substring(start, this.index + offset),
-    };
-  }
-
-  private parseWhitespace(): WhitespaceToken {
-    const start = this.index;
-    const columnStart = this.column;
-    let line = this.line;
-    let column = this.column;
-
-    let offset = 0;
-
-    let char = this.peekChar(offset);
-    while (char === " " || char === "\t") {
-      offset++;
-      column++;
-      char = this.peekChar(offset);
-    }
-    return {
-      type: "Whitespace",
-      start,
-      end: this.index + offset,
-      loc: {
-        start: {
-          line: line,
+          line: this.line,
           column: columnStart,
         },
         end: {
-          line: line,
-          column: column,
+          line: this.line,
+          column: this.column,
         },
       },
-      raw: this.sourceCode.substring(start, this.index + offset),
+      raw: this.sourceCode.substring(start, this.index),
     };
+  }
+
+  private eatWhitespace(): void {
+    let char = this.peek();
+    while (this.isWhitespace(char)) {
+      this.index++;
+      this.column++;
+      if (char === "\r" && this.peek() === "\n") {
+        this.line++;
+        this.column = 0;
+        this.index++;
+      } else if (char === "\n" || char === "\r") {
+        this.line++;
+        this.column = 0;
+      }
+      char = this.peek();
+    }
   }
 
   private parseComment(): CommentToken {
     const start = this.index;
     const columnStart = this.column;
-    let line = this.line;
-    let column = this.column;
 
-    let offset = 1; // first char is "#", don't record in value
-
-    let char = this.peekChar(offset);
+    this.index++; // first char is "#", don't record in value
+    this.column++;
+  
+    let char = this.peek();
     let value = "";
     while (char !== "\r" && char !== "\n" && char !== "") {
       value += char;
-      offset++;
-      column++;
-      char = this.peekChar(offset);
+      this.index++;
+      this.column++;
+      char = this.peek();
     }
     return {
       type: "Comment",
       value,
       start,
-      end: this.index + offset,
+      end: this.index,
       loc: {
         start: {
-          line: line,
+          line: this.line,
           column: columnStart,
         },
         end: {
-          line: line,
-          column: column,
+          line: this.line,
+          column: this.column,
         },
       },
-      raw: this.sourceCode.substring(start, this.index + offset),
+      raw: this.sourceCode.substring(start, this.index),
     };
   }
 
   private parseNumericLiteral(): NumericLiteralToken {
     const start = this.index;
     const columnStart = this.column;
-    let line = this.line;
-    let column = this.column;
 
-    let offset = 0;
-
-    let char = this.peekChar(offset);
+    let char = this.peek();
     let value = "";
     while (char !== "\n" && char !== "") {
       if (char === ".") {
         value += char;
-        offset++;
-        column++;
+        this.index++;
+        this.column++;
       } else if (char >= "0" && char <= "9") {
         value += char;
-        offset++;
-        column++;
+        this.index++;
+        this.column++;
       } else {
         break;
       }
-      char = this.peekChar(offset);
+      char = this.peek();
     }
     return {
       type: "NumericLiteral",
       value,
       start,
-      end: this.index + offset,
+      end: this.index,
       loc: {
         start: {
-          line: line,
+          line: this.line,
           column: columnStart,
         },
         end: {
-          line: line,
-          column: column,
+          line: this.line,
+          column: this.column,
         },
       },
-      raw: this.sourceCode.substring(start, this.index + offset),
+      raw: this.sourceCode.substring(start, this.index),
     };
   }
 
   private parseStringLiteral(): StringLiteralToken {
     const start = this.index;
+    const lineStart = this.line;
     const columnStart = this.column;
-    let line = this.line;
-    let column = this.column;
-
-    let offset = 0;
-
+  
     let singleQuote = false;
-    let char = this.peekChar(offset);
+    let char = this.peek();
 
     if (char === "'") {
       singleQuote = true;
     }
-    offset++;
-    column++;
+    this.index++;
+    this.column++;
 
     let value = "";
     while (char !== "\n" && char !== "") {
-      char = this.peekChar(offset);
-      offset++;
-      column++;
-
+      char = this.peek();
+      this.index++;
+      this.column++;
       // escape with backslash
       if (char === "\\") {
-        const next = this.peekChar(offset + 1);
+        const next = this.peek(1);
         if (next === "\n") {
-          line++;
-          column = 0;
-          offset++;
+          this.index++;
+          this.column++;
           continue;
         }
         if (next === "'" || next === '"') {
           value += next;
-          offset++;
-          column++;
+          this.index++;
+          this.column++;
           continue;
         }
-        offset++;
-        column++;
+        this.index++;
+        this.column++;
       }
 
       // allow non-escaped single quotes in double-quoted strings
@@ -512,50 +467,43 @@ export class Tokenizer {
       type: "StringLiteral",
       value,
       start,
-      end: this.index + offset,
+      end: this.index,
       loc: {
         start: {
-          line: line,
+          line: lineStart,
           column: columnStart,
         },
         end: {
-          line: line,
-          column: column,
+          line: this.line,
+          column: this.column,
         },
       },
-      raw: this.sourceCode.substring(start, this.index + offset),
+      raw: this.sourceCode.substring(start, this.index),
     };
   }
 
-  next(): Token {
-    // read next token
-    const token = this.peek();
-    // restore state
-    this.index += token.raw.length;
-    this.column = token.loc.end.column;
-    this.line = token.loc.end.line;
-    return token;
-  }
-
-  skip(type: Token["type"]): void {
-    const token = this.peek();
-    if (type === token.type) {
-      this.next();
-    }
-  }
-
   hasNextToken(): boolean {
-    return this.index < this.sourceCode.length;
+    return this.queue.length > 0 || this.index < this.sourceCode.length;
   }
 
-  private peekChar(next?: number): string {
+  /**
+   * This is a helper function to get the next character without consuming it.
+   */
+  peek(next?: number): string {
     if (next) {
       return this.sourceCode.charAt(this.index + next);
     }
     return this.sourceCode.charAt(this.index);
   }
 
-  private isLineBreak(char: string): boolean {
-    return char === "\n" || char === "\r";
+  /**
+   * This function would move the cursor forward
+   */
+  next(): string {
+    return this.sourceCode.charAt(++this.index);
+  }
+
+  private isWhitespace(char: string): boolean {
+    return char === "\n" || char === "\r" || char === "\t" || char === " ";
   }
 }
