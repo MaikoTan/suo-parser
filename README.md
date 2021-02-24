@@ -8,12 +8,13 @@
 This project is planed to support the following grammar:
 
 ```text
-timeline = { entry | hide-all-stmt | alert-all-stmt | define-stmt }
+timeline = { entry | hide-all-stmt | alert-all-stmt | define-stmt | text-popup-stmt }
 
 entry = time ws name [ws sync-stmt] [ws duration-stmt] [ws window-stmt] [ws jump-stmt]
 hide-all-stmt = "hideall" ws name
 alert-all-stmt = "alertall" ws name [ws before-stmt] [ws sound-stmt]
 define-stmt = "define" ws "alertsound" ws name ws file-name
+text-popup-stmt = ( "info" | "alert" | "alarm" ) "text" ws name time before-stmt [ws name]
 
 sync-stmt = "sync" ws "/" regex "/"
 duration-stmt = "duration" ws time
@@ -26,5 +27,5 @@ file-name = name
 name = '"' STRING+ '"' | STRING+
 time = NUMBER+ | NUMBER+ "." NUMBER+
 regex = ? regular expression literal ?
-ws = " " | "\t"*
+ws = ( " " | "\t" )*
 ```
