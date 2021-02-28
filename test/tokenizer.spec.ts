@@ -102,12 +102,6 @@ describe("Tokenizer", () => {
       tokens.nextToken(),
       tokens.nextToken(),
     ].map((token) => token.type);
-    expect(tokenTypes).deep.equals([
-      "Keyword",
-      "NumericLiteral",
-      "Keyword",
-      "NumericLiteral",
-      "EOF",
-    ]);
+    expect(tokenTypes).deep.equals(["Keyword", "NumericLiteral", "Keyword", "NumericLiteral", "EOF"]);
   });
 });

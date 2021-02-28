@@ -14,7 +14,8 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "test": "mocha -r ts-node/register --extension .spec.ts test"
+    "test": "mocha -r ts-node/register --extension .spec.ts test",
+    "prettier": "prettier --write 'src/**/*.ts' 'bin/**/*' 'test/**/*.ts' '*.json'"
   },
   "devDependencies": {
     "@babel/types": "^7.15.0",

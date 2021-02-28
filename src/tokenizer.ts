@@ -68,7 +68,21 @@ export type Token =
   | RegularExpressionToken
   | UnknownToken;
 
-const keywords = ["sync", "window", "jump", "duration", "hideall"] as const;
+const keywords = [
+  "sync",
+  "window",
+  "jump",
+  "duration",
+  "hideall",
+  "alertall",
+  "before",
+  "sound",
+  "define",
+  "alertsound",
+  "infotext",
+  "alerttext",
+  "alarmtext",
+] as const;
 
 export type Keyword = typeof keywords[number];
 
@@ -103,6 +117,12 @@ export class Tokenizer {
   }
 
   nextToken(): Token {
+    if (this.queue.length > 0) {
+      const token = this.queue[0];
+      this.queue.pop();
+      return token;
+    }
+
     if (this.index >= this.sourceCode.length) {
       return {
         type: "EOF",
@@ -230,7 +250,7 @@ export class Tokenizer {
         },
         end: {
           line: this.line,
-          column: this.column ,
+          column: this.column,
         },
       },
       raw: this.sourceCode.substring(start, this.index),
@@ -339,7 +359,7 @@ export class Tokenizer {
 
     this.index++; // first char is "#", don't record in value
     this.column++;
-  
+
     let char = this.peek();
     let value = "";
     while (char !== "\r" && char !== "\n" && char !== "") {
@@ -410,7 +430,7 @@ export class Tokenizer {
     const start = this.index;
     const lineStart = this.line;
     const columnStart = this.column;
-  
+
     let singleQuote = false;
     let char = this.peek();
 
