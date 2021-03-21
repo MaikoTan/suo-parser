@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 const { Tokenizer } = require("../dist/tokenizer");
+const { Parser } = require("../dist/parser");
 const file = process.argv[2];
 
 fs.readFile(file, "utf8", (err, data) => {
@@ -9,11 +10,8 @@ fs.readFile(file, "utf8", (err, data) => {
     throw err;
   }
   const tokenizer = new Tokenizer(data);
-  const tokens = [];
-  while (tokenizer.hasNextToken()) {
-    const token = tokenizer.next();
-    tokens.push(token);
-  }
+  const parser = new Parser(tokenizer);
+  const program = parser.parse();
 
-  console.log(JSON.stringify(tokens, null, 2));
+  console.log(JSON.stringify(program, null, 2));
 });

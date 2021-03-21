@@ -4,7 +4,7 @@ export interface BaseNode {
   range: [number, number];
 }
 
-export type Node = 
+export type Node =
   | Program
   | CommentLine
   | StringLiteral
@@ -14,7 +14,10 @@ export type Node =
   | WindowStatement
   | JumpStatement
   | DurationStatement
+  | BeforeStatement
+  | SoundStatement
   | HideAllStatement
+  | AlertAllStatement
   | Entry;
 
 interface SourceLocation {
@@ -73,9 +76,26 @@ export interface DurationStatement extends BaseNode {
   time: NumericLiteral;
 }
 
+export interface BeforeStatement extends BaseNode {
+  type: "BeforeStatement";
+  time: NumericLiteral;
+}
+
+export interface SoundStatement extends BaseNode {
+  type: "SoundStatement";
+  file: StringLiteral;
+}
+
 export interface HideAllStatement extends BaseNode {
   type: "HideAllStatement";
   name: StringLiteral;
+}
+
+export interface AlertAllStatement extends BaseNode {
+  type: "AlertAllStatement";
+  name: StringLiteral;
+  before?: BeforeStatement;
+  sound?: SoundStatement;
 }
 
 export interface Entry extends BaseNode {
@@ -89,7 +109,13 @@ export interface Entry extends BaseNode {
 }
 
 export type Literal = StringLiteral | NumericLiteral | RegExpLiteral;
-export type Statement = SyncStatement | WindowStatement | JumpStatement | DurationStatement | HideAllStatement;
+export type Statement =
+  | SyncStatement
+  | WindowStatement
+  | JumpStatement
+  | DurationStatement
+  | HideAllStatement
+  | AlertAllStatement;
 
 export interface Token {
   type: string;
