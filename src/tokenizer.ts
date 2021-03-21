@@ -78,7 +78,6 @@ const keywords = [
   "before",
   "sound",
   "define",
-  "alertsound",
   "infotext",
   "alerttext",
   "alarmtext",
@@ -95,31 +94,32 @@ export class Tokenizer {
   /**
    * cache the next token
    */
-  private queue: Token[] = [];
+  private currentToken: Token | null;
 
   constructor(sourceCode: string) {
     this.sourceCode = sourceCode;
     this.line = 1;
     this.column = 0;
     this.index = 0;
+
+    this.currentToken = null;
   }
 
   peekToken(): Token {
-    if (this.queue.length > 0) {
-      const token = this.queue[0];
-      this.queue.pop();
+    if (this.currentToken) {
+      const token = this.currentToken;
+      this.currentToken = null;
       return token;
     }
 
-    const token = this.nextToken();
-    this.queue.push(token);
-    return token;
+    this.currentToken = this.nextToken();
+    return this.currentToken;
   }
 
   nextToken(): Token {
-    if (this.queue.length > 0) {
-      const token = this.queue[0];
-      this.queue.pop();
+    if (this.currentToken) {
+      const token = this.currentToken;
+      this.currentToken = null;
       return token;
     }
 
@@ -503,7 +503,7 @@ export class Tokenizer {
   }
 
   hasNextToken(): boolean {
-    return this.queue.length > 0 || this.index < this.sourceCode.length;
+    return this.currentToken !== null || this.index < this.sourceCode.length;
   }
 
   /**
