@@ -107,9 +107,7 @@ export class Tokenizer {
 
   peekToken(): Token {
     if (this.currentToken) {
-      const token = this.currentToken;
-      this.currentToken = null;
-      return token;
+      return this.currentToken;
     }
 
     this.currentToken = this.nextToken();
