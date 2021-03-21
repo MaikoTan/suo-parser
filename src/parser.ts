@@ -3,6 +3,7 @@ import {
   AlertAllStatement,
   BeforeStatement,
   CommentLine,
+  DefineStatement,
   HideAllStatement,
   Program,
   SoundStatement,
@@ -82,6 +83,8 @@ export class Parser {
             return this.parseHideAllStatement();
           case "alertall":
             return this.parseAlertAllStatement();
+          case "define":
+            return this.parseDefineStatement();
           default:
             return null;
         }
@@ -218,6 +221,52 @@ export class Parser {
       stmt.sound = sound;
     }
 
+    return stmt;
+  }
+
+  parseDefineStatement(): DefineStatement {
+    const token = this.tokenizer.nextToken();
+    const identifier = this.tokenizer.nextToken();
+    if (identifier.type !== "Identifier" && identifier.value !== "alertsound") {
+      console.log(identifier);
+      throw new Error(`Unexpected token: { type: ${identifier.type},value: ${identifier.value} }`);
+    }
+
+    const nameToken = this.tokenizer.nextToken();
+    if (nameToken.type !== "StringLiteral") {
+      console.log(nameToken);
+      throw new Error("Unexpected token type: " + nameToken.type);
+    }
+
+    const fileToken = this.tokenizer.nextToken();
+    if (fileToken.type !== "StringLiteral") {
+      console.log(fileToken);
+      throw new Error("Unexpected token type: " + fileToken.type);
+    }
+
+    const stmt: DefineStatement = {
+      type: "DefineStatement",
+      range: [token.start, identifier.end],
+      loc: {
+        start: {
+          line: token.loc.start.line,
+          column: token.loc.start.column,
+        },
+        end: {
+          line: identifier.loc.end.line,
+          column: identifier.loc.end.column,
+        },
+      },
+      defineType: "alertsound",
+      name: {
+        range: [nameToken.start, nameToken.end],
+        ...nameToken,
+      },
+      file: {
+        range: [fileToken.start, fileToken.end],
+        ...fileToken,
+      },
+    };
     return stmt;
   }
 }

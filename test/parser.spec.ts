@@ -48,4 +48,27 @@ describe("Parser", () => {
     expect(stmt).to.have.nested.property("sound.file.type", "StringLiteral");
     expect(stmt).to.have.nested.property("sound.file.value", "file");
   });
+
+  /**
+   * This shape should be like:
+   *
+   * DefineStatement:
+   *   defineType: "alertsound"
+   *   name: StringLiteral
+   *   file: StringLiteral
+   */
+  it("define statement", () => {
+    const tokenizer = new Tokenizer('define alertsound "name" "file"');
+    const parser = new Parser(tokenizer);
+    const ast = parser.parse();
+    expect(ast.type).to.equal("Program");
+    expect(ast.body.length).to.equal(1);
+    const stmt = ast.body[0];
+    expect(stmt.type).to.equal("DefineStatement");
+    expect(stmt).to.have.own.property("defineType", "alertsound");
+    expect(stmt).to.have.nested.property("name.type", "StringLiteral");
+    expect(stmt).to.have.nested.property("name.value", "name");
+    expect(stmt).to.have.nested.property("file.type", "StringLiteral");
+    expect(stmt).to.have.nested.property("file.value", "file");
+  });
 });
