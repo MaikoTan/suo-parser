@@ -501,7 +501,7 @@ export class Tokenizer {
   }
 
   hasNextToken(): boolean {
-    return this.currentToken !== null || this.index < this.sourceCode.length;
+    return (this.currentToken !== null && this.currentToken.type !== "EOF") || this.index < this.sourceCode.length;
   }
 
   /**
