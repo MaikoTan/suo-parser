@@ -136,7 +136,7 @@ export class Tokenizer {
             column: this.column,
           },
         },
-        raw: this.sourceCode.substring(this.index),
+        raw: "",
       };
     }
 

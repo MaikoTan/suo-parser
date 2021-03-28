@@ -1,4 +1,4 @@
-import { KeywordToken, Tokenizer } from "./tokenizer";
+import { Tokenizer } from "./tokenizer";
 import {
   AlertAllStatement,
   BeforeStatement,
