@@ -141,7 +141,7 @@ export interface Token {
 
 export interface Program extends BaseNode {
   type: "Program";
-  body: Array<Statement>;
+  body: Array<Statement | Entry>;
   sourceType: "script" | "module";
   sourceFile: string;
   tokens: Array<Token>;

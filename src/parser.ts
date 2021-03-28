@@ -4,11 +4,15 @@ import {
   BeforeStatement,
   CommentLine,
   DefineStatement,
+  Entry,
   HideAllStatement,
+  JumpStatement,
   Program,
   SoundStatement,
   Statement,
+  SyncStatement,
   Token,
+  WindowStatement,
 } from "./types";
 
 export interface ParserOptions {
@@ -21,7 +25,7 @@ export class Parser {
   options: ParserOptions;
 
   tokens: Array<Token>;
-  statements: Array<Statement>;
+  statements: Array<Statement | Entry>;
   comments: Array<CommentLine>;
 
   constructor(tokenizer: Tokenizer, options: ParserOptions = {}) {
@@ -64,7 +68,7 @@ export class Parser {
     };
   }
 
-  parseStatement(): Statement | CommentLine | null {
+  parseStatement(): Statement | CommentLine | Entry | null {
     const token = this.tokenizer.peekToken();
     switch (token.type) {
       case "Comment":
@@ -88,6 +92,9 @@ export class Parser {
           default:
             return null;
         }
+
+      case "NumericLiteral":
+        return this.parseEntry();
 
       default:
         return null;
@@ -267,6 +274,188 @@ export class Parser {
         ...fileToken,
       },
     };
+    return stmt;
+  }
+
+  parseEntry(): Entry {
+    const token = this.tokenizer.nextToken();
+    const nameStrLit = this.tokenizer.nextToken();
+    if (nameStrLit.type !== "StringLiteral") {
+      console.log(nameStrLit);
+      throw new Error(`Unexpected token: { type: ${nameStrLit.type},value: ${nameStrLit.value} }`);
+    }
+
+    const stmt: Entry = {
+      type: "Entry",
+      range: [token.start, nameStrLit.end],
+      loc: {
+        start: {
+          line: token.loc.start.line,
+          column: token.loc.start.column,
+        },
+        end: {
+          line: nameStrLit.loc.end.line,
+          column: nameStrLit.loc.end.column,
+        },
+      },
+      time: {
+        type: "NumericLiteral",
+        value: parseFloat(nameStrLit.value),
+        range: [nameStrLit.start, nameStrLit.end],
+        loc: nameStrLit.loc,
+        raw: nameStrLit.raw,
+      },
+      name: {
+        range: [nameStrLit.start, nameStrLit.end],
+        ...nameStrLit,
+      },
+    };
+
+    while (this.tokenizer.hasNextToken()) {
+      const nextToken = this.tokenizer.peekToken();
+      if (nextToken.type !== "Keyword" || !["sync", "window", "jump"].includes(nextToken.value)) {
+        break;
+      }
+
+      if (nextToken.value === "sync") {
+        stmt.sync = this.parseSyncStatement();
+      }
+      if (nextToken.value === "window") {
+        stmt.window = this.parseWindowStatement();
+      }
+      if (nextToken.value === "jump") {
+        stmt.jump = this.parseJumpStatement();
+      }
+    }
+    return stmt;
+  }
+
+  parseSyncStatement(): SyncStatement {
+    const token = this.tokenizer.nextToken();
+    const regexLit = this.tokenizer.nextToken();
+    if (regexLit.type !== "RegularExpression") {
+      console.log(token);
+      throw new Error(`Unexpected token type: ${token.type}`);
+    }
+
+    const stmt: SyncStatement = {
+      type: "SyncStatement",
+      range: [token.start, token.end],
+      loc: {
+        start: {
+          line: token.loc.start.line,
+          column: token.loc.start.column,
+        },
+        end: {
+          line: token.loc.end.line,
+          column: token.loc.end.column,
+        },
+      },
+      regex: {
+        type: "RegExpLiteral",
+        flags: "",
+        pattern: regexLit.value,
+        range: [regexLit.start, regexLit.end],
+        loc: regexLit.loc,
+        raw: regexLit.raw,
+      },
+    };
+    return stmt;
+  }
+
+  parseWindowStatement(): WindowStatement {
+    const token = this.tokenizer.nextToken();
+    const numLit = this.tokenizer.nextToken();
+    if (numLit.type !== "NumericLiteral") {
+      console.log(token);
+      throw new Error(`Unexpected token type: ${token.type}`);
+    }
+
+    const stmt: WindowStatement = {
+      type: "WindowStatement",
+      range: [token.start, numLit.end],
+      loc: {
+        start: {
+          line: token.loc.start.line,
+          column: token.loc.start.column,
+        },
+        end: {
+          line: numLit.loc.end.line,
+          column: numLit.loc.end.column,
+        },
+      },
+      // assign the same value temporarily
+      before: {
+        type: "NumericLiteral",
+        value: parseFloat(numLit.value),
+        range: [numLit.start, numLit.end],
+        loc: numLit.loc,
+        raw: numLit.raw,
+      },
+      after: {
+        type: "NumericLiteral",
+        value: parseFloat(numLit.value),
+        range: [numLit.start, numLit.end],
+        loc: numLit.loc,
+        raw: numLit.raw,
+      },
+    };
+
+    if (this.tokenizer.hasNextToken() && this.tokenizer.peekToken().type === "Punctuator") {
+      const nextToken = this.tokenizer.nextToken();
+      if (nextToken.value !== ",") {
+        console.log(nextToken);
+        throw new Error(`Unexpected token: ${nextToken.value}`);
+      }
+
+      const numLit2 = this.tokenizer.nextToken();
+      if (numLit2.type !== "NumericLiteral") {
+        console.log(numLit2);
+        throw new Error(`Unexpected token type: ${numLit2.type}`);
+      }
+
+      stmt.after = {
+        type: "NumericLiteral",
+        value: parseFloat(numLit2.value),
+        range: [numLit2.start, numLit2.end],
+        loc: numLit2.loc,
+        raw: numLit2.raw,
+      };
+    }
+
+    return stmt;
+  }
+
+  parseJumpStatement(): JumpStatement {
+    const token = this.tokenizer.nextToken();
+    const numLit = this.tokenizer.nextToken();
+    if (numLit.type !== "NumericLiteral") {
+      console.log(numLit);
+      throw new Error(`Unexpected token type: ${numLit.type}`);
+    }
+
+    const stmt: JumpStatement = {
+      type: "JumpStatement",
+      range: [token.start, numLit.end],
+      loc: {
+        start: {
+          line: token.loc.start.line,
+          column: token.loc.start.column,
+        },
+        end: {
+          line: numLit.loc.end.line,
+          column: numLit.loc.end.column,
+        },
+      },
+      time: {
+        type: "NumericLiteral",
+        value: parseFloat(numLit.value),
+        range: [numLit.start, numLit.end],
+        loc: numLit.loc,
+        raw: numLit.raw,
+      },
+    };
+
     return stmt;
   }
 }

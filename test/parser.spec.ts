@@ -71,4 +71,38 @@ describe("Parser", () => {
     expect(stmt).to.have.nested.property("file.type", "StringLiteral");
     expect(stmt).to.have.nested.property("file.value", "file");
   });
+
+  /**
+   * This shape should be like:
+   *
+   * Entry:
+   *   name: StringLiteral
+   *   sync?: SyncStatement
+   *     regex: RegExpLiteral
+   *   window?: WindowStatement
+   *     before: NumericLiteral
+   *     after: NumericLiteral
+   *   jump?: JumpStatement
+   *     time: NumericLiteral
+   */
+  it("timeline entry", () => {
+    const tokenizer = new Tokenizer('0.0 "--Reset--" sync / 00:0839:.*is no longer sealed/ window 10000 jump 0');
+    const parser = new Parser(tokenizer);
+    const ast = parser.parse();
+    expect(ast.type).to.equal("Program");
+    expect(ast.body.length).to.equal(1);
+    const stmt = ast.body[0];
+    expect(stmt.type).to.equal("Entry");
+    expect(stmt).to.have.nested.property("name.type", "StringLiteral");
+    expect(stmt).to.have.nested.property("name.value", "--Reset--");
+    expect(stmt).to.have.nested.property("window.type", "WindowStatement");
+    expect(stmt).to.have.nested.property("window.before.type", "NumericLiteral");
+    expect(stmt).to.have.nested.property("window.before.value", 10000);
+    expect(stmt).to.have.nested.property("window.type", "WindowStatement");
+    expect(stmt).to.have.nested.property("window.after.type", "NumericLiteral");
+    expect(stmt).to.have.nested.property("window.after.value", 10000);
+    expect(stmt).to.have.nested.property("jump.type", "JumpStatement");
+    expect(stmt).to.have.nested.property("jump.time.type", "NumericLiteral");
+    expect(stmt).to.have.nested.property("jump.time.value", 0);
+  });
 });
