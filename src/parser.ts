@@ -50,6 +50,8 @@ export class Parser {
         } else {
           this.statements.push(stmt);
         }
+      } else {
+        break;
       }
     }
 
@@ -280,6 +282,10 @@ export class Parser {
   parseEntry(): Entry {
     const token = this.tokenizer.nextToken();
     const nameStrLit = this.tokenizer.nextToken();
+    if (token.type !== "NumericLiteral") {
+      console.log(token);
+      throw new Error("Unexpected token type: " + token.type);
+    }
     if (nameStrLit.type !== "StringLiteral") {
       console.log(nameStrLit);
       throw new Error(`Unexpected token: { type: ${nameStrLit.type},value: ${nameStrLit.value} }`);
@@ -300,10 +306,10 @@ export class Parser {
       },
       time: {
         type: "NumericLiteral",
-        value: parseFloat(nameStrLit.value),
-        range: [nameStrLit.start, nameStrLit.end],
-        loc: nameStrLit.loc,
-        raw: nameStrLit.raw,
+        value: parseFloat(token.value),
+        range: [token.start, token.end],
+        loc: token.loc,
+        raw: token.raw,
       },
       name: {
         range: [nameStrLit.start, nameStrLit.end],
