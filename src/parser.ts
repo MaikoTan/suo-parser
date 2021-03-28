@@ -4,6 +4,7 @@ import {
   BeforeStatement,
   CommentLine,
   DefineStatement,
+  DurationStatement,
   Entry,
   HideAllStatement,
   JumpStatement,
@@ -50,8 +51,6 @@ export class Parser {
         } else {
           this.statements.push(stmt);
         }
-      } else {
-        break;
       }
     }
 
@@ -319,7 +318,15 @@ export class Parser {
 
     while (this.tokenizer.hasNextToken()) {
       const nextToken = this.tokenizer.peekToken();
-      if (nextToken.type !== "Keyword" || !["sync", "window", "jump"].includes(nextToken.value)) {
+      if (
+        nextToken.type !== "Keyword" ||
+        !(
+          nextToken.value === "sync" ||
+          nextToken.value === "window" ||
+          nextToken.value === "jump" ||
+          nextToken.value === "duration"
+        )
+      ) {
         break;
       }
 
@@ -331,6 +338,9 @@ export class Parser {
       }
       if (nextToken.value === "jump") {
         stmt.jump = this.parseJumpStatement();
+      }
+      if (nextToken.value === "duration") {
+        stmt.duration = this.parseDurationStatement();
       }
     }
     return stmt;
@@ -442,6 +452,39 @@ export class Parser {
 
     const stmt: JumpStatement = {
       type: "JumpStatement",
+      range: [token.start, numLit.end],
+      loc: {
+        start: {
+          line: token.loc.start.line,
+          column: token.loc.start.column,
+        },
+        end: {
+          line: numLit.loc.end.line,
+          column: numLit.loc.end.column,
+        },
+      },
+      time: {
+        type: "NumericLiteral",
+        value: parseFloat(numLit.value),
+        range: [numLit.start, numLit.end],
+        loc: numLit.loc,
+        raw: numLit.raw,
+      },
+    };
+
+    return stmt;
+  }
+
+  parseDurationStatement(): DurationStatement {
+    const token = this.tokenizer.nextToken();
+    const numLit = this.tokenizer.nextToken();
+    if (numLit.type !== "NumericLiteral") {
+      console.log(numLit);
+      throw new Error(`Unexpected token type: ${numLit.type}`);
+    }
+
+    const stmt: DurationStatement = {
+      type: "DurationStatement",
       range: [token.start, numLit.end],
       loc: {
         start: {

@@ -79,6 +79,8 @@ describe("Parser", () => {
    *   name: StringLiteral
    *   sync?: SyncStatement
    *     regex: RegExpLiteral
+   *   duration?: DurationStatement
+   *     time: NumericLiteral
    *   window?: WindowStatement
    *     before: NumericLiteral
    *     after: NumericLiteral
@@ -86,7 +88,9 @@ describe("Parser", () => {
    *     time: NumericLiteral
    */
   it("timeline entry", () => {
-    const tokenizer = new Tokenizer('0.0 "--Reset--" sync / 00:0839:.*is no longer sealed/ window 10000 jump 0');
+    const tokenizer = new Tokenizer(
+      '0.0 "--Reset--" sync / 00:0839:.*is no longer sealed/ duration 5 window 10000 jump 0',
+    );
     const parser = new Parser(tokenizer);
     const ast = parser.parse();
     expect(ast.type).to.equal("Program");
@@ -95,6 +99,12 @@ describe("Parser", () => {
     expect(stmt.type).to.equal("Entry");
     expect(stmt).to.have.nested.property("name.type", "StringLiteral");
     expect(stmt).to.have.nested.property("name.value", "--Reset--");
+    expect(stmt).to.have.nested.property("sync.type", "SyncStatement");
+    expect(stmt).to.have.nested.property("sync.regex.type", "RegExpLiteral");
+    expect(stmt).to.have.nested.property("sync.regex.pattern", " 00:0839:.*is no longer sealed");
+    expect(stmt).to.have.nested.property("duration.type", "DurationStatement");
+    expect(stmt).to.have.nested.property("duration.time.type", "NumericLiteral");
+    expect(stmt).to.have.nested.property("duration.time.value", 5);
     expect(stmt).to.have.nested.property("window.type", "WindowStatement");
     expect(stmt).to.have.nested.property("window.before.type", "NumericLiteral");
     expect(stmt).to.have.nested.property("window.before.value", 10000);
