@@ -1,17 +1,13 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const { Tokenizer } = require("../dist/tokenizer");
-const { Parser } = require("../dist/parser");
+const { parseFile } = require("../dist");
 const file = process.argv[2];
 
-fs.readFile(file, "utf8", (err, data) => {
+parseFile(file, (err, result) => {
   if (err) {
-    throw err;
+    console.error(err);
+    process.exit(1);
   }
-  const tokenizer = new Tokenizer(data);
-  const parser = new Parser(tokenizer);
-  const program = parser.parse();
 
-  console.log(JSON.stringify(program, null, 2));
+  console.log(JSON.stringify(result, null, 2));
 });
