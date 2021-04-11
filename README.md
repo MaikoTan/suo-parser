@@ -17,9 +17,9 @@
 ## Install
 
 ```bash
-# If you use [npm](https://www.npmjs.com/):
+# If you use npm:
 $ npm install suo-parser
-# If you use [yarn](https://yarnpkg.com/):
+# If you use yarn:
 $ yarn add suo-parser
 ```
 
