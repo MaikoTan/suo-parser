@@ -1,0 +1,14 @@
+# Source
+.vscode/
+src/
+node_modules/
+tsconfig.json
+
+# Test
+test/
+
+# Package
+/*.tgz
+/*.gz
+/*.zip
+/*.tar.gz

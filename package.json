@@ -3,6 +3,7 @@
   "version": "0.1.0-alpha.1",
   "description": "A timeline parser for FFXIV/ACT plugins",
   "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
   "bin": {
     "suo": "bin/suo"
   },
@@ -15,7 +16,8 @@
   "scripts": {
     "build": "tsc",
     "test": "mocha -r ts-node/register --extension .spec.ts test",
-    "prettier": "prettier --write 'src/**/*.ts' 'bin/**/*' 'test/**/*.ts' '*.json'"
+    "prettier": "prettier --write 'src/**/*.ts' 'bin/**/*' 'test/**/*.ts' '*.json'",
+    "prepack": "rm -rf dist && yarn run prettier && yarn run build"
   },
   "devDependencies": {
     "@babel/types": "^7.15.0",
@@ -30,6 +32,9 @@
     "prettier": "^2.3.2",
     "ts-node": "^10.2.0",
     "typescript": "^4.3.5"
+  },
+  "engines": {
+    "node": ">=10.0.0"
   },
   "prettier": {
     "printWidth": 120,
