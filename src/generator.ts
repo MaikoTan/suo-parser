@@ -51,8 +51,8 @@ export class Generator {
     }
     if (stmt.window) {
       const before = stmt.window.before.value;
-      const after = stmt.window.after.value;
-      if (before !== after) {
+      const after = stmt.window.after?.value;
+      if (after && before !== after) {
         ret += ` window ${this.simplifyNum(before)},${this.simplifyNum(after)}`;
       } else {
         ret += ` window ${this.simplifyNum(before)}`;

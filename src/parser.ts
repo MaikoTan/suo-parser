@@ -408,13 +408,6 @@ export class Parser {
         loc: numLit.loc,
         raw: numLit.raw,
       },
-      after: {
-        type: "NumericLiteral",
-        value: parseFloat(numLit.value),
-        range: [numLit.start, numLit.end],
-        loc: numLit.loc,
-        raw: numLit.raw,
-      },
     };
 
     if (this.tokenizer.hasNextToken() && this.tokenizer.peekToken().type === "Punctuator") {

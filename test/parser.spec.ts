@@ -76,7 +76,7 @@ describe("Parser", () => {
    *     time: NumericLiteral
    *   window?: WindowStatement
    *     before: NumericLiteral
-   *     after: NumericLiteral
+   *     after?: NumericLiteral
    *   jump?: JumpStatement
    *     time: NumericLiteral
    */
@@ -99,9 +99,6 @@ describe("Parser", () => {
     expect(stmt).to.have.nested.property("window.type", "WindowStatement");
     expect(stmt).to.have.nested.property("window.before.type", "NumericLiteral");
     expect(stmt).to.have.nested.property("window.before.value", 10000);
-    expect(stmt).to.have.nested.property("window.type", "WindowStatement");
-    expect(stmt).to.have.nested.property("window.after.type", "NumericLiteral");
-    expect(stmt).to.have.nested.property("window.after.value", 10000);
     expect(stmt).to.have.nested.property("jump.type", "JumpStatement");
     expect(stmt).to.have.nested.property("jump.time.type", "NumericLiteral");
     expect(stmt).to.have.nested.property("jump.time.value", 0);

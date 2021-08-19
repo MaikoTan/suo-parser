@@ -64,7 +64,7 @@ export interface SyncStatement extends BaseNode {
 export interface WindowStatement extends BaseNode {
   type: "WindowStatement";
   before: NumericLiteral;
-  after: NumericLiteral;
+  after?: NumericLiteral;
 }
 
 export interface JumpStatement extends BaseNode {
