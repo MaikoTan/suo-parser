@@ -98,8 +98,7 @@ export class Parser {
         return this.parseEntry();
 
       default:
-        return null;
-      // throw new Error("Unexpected token type: " + token.type);
+        throw new Error("Unexpected token type: " + token.type);
     }
   }
 
