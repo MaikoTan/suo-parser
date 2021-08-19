@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-const { parseFile } = require("../dist");
+const { transformFile } = require("../dist");
 const file = process.argv[2];
 
-parseFile(file, (err, result) => {
+transformFile(file, (err, result) => {
   if (err) {
     console.error(err);
     process.exit(1);
   }
 
-  console.log(JSON.stringify(result, null, 2));
+  console.log(result);
 });
