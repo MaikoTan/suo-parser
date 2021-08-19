@@ -1,6 +1,5 @@
 import { expect } from "chai";
-import { Parser } from "../src/parser";
-import { Tokenizer } from "../src/tokenizer";
+import { parseAsync } from "../src";
 
 describe("Parser", () => {
   /**
@@ -9,10 +8,8 @@ describe("Parser", () => {
    * HideAllStatement:
    *   name: StringLiteral
    */
-  it("hideall statement", () => {
-    const tokenizer = new Tokenizer('hideall "--sync--"');
-    const parser = new Parser(tokenizer);
-    const ast = parser.parse();
+  it("hideall statement", async () => {
+    const ast = await parseAsync('hideall "--sync--"');
     expect(ast.type).to.equal("Program");
     expect(ast.body.length).to.equal(1);
     const stmt = ast.body[0];
@@ -31,10 +28,8 @@ describe("Parser", () => {
    *   sound?: SoundStatement
    *     file: StringLiteral
    */
-  it("alertall statement", () => {
-    const tokenizer = new Tokenizer('alertall "name" before 1 sound "file"');
-    const parser = new Parser(tokenizer);
-    const ast = parser.parse();
+  it("alertall statement", async () => {
+    const ast = await parseAsync('alertall "name" before 1 sound "file"');
     expect(ast.type).to.equal("Program");
     expect(ast.body.length).to.equal(1);
     const stmt = ast.body[0];
@@ -57,10 +52,8 @@ describe("Parser", () => {
    *   name: StringLiteral
    *   file: StringLiteral
    */
-  it("define statement", () => {
-    const tokenizer = new Tokenizer('define alertsound "name" "file"');
-    const parser = new Parser(tokenizer);
-    const ast = parser.parse();
+  it("define statement", async () => {
+    const ast = await parseAsync('define alertsound "name" "file"');
     expect(ast.type).to.equal("Program");
     expect(ast.body.length).to.equal(1);
     const stmt = ast.body[0];
@@ -87,12 +80,10 @@ describe("Parser", () => {
    *   jump?: JumpStatement
    *     time: NumericLiteral
    */
-  it("timeline entry", () => {
-    const tokenizer = new Tokenizer(
+  it("timeline entry", async () => {
+    const ast = await parseAsync(
       '0.0 "--Reset--" sync / 00:0839:.*is no longer sealed/ duration 5 window 10000 jump 0',
     );
-    const parser = new Parser(tokenizer);
-    const ast = parser.parse();
     expect(ast.type).to.equal("Program");
     expect(ast.body.length).to.equal(1);
     const stmt = ast.body[0];
