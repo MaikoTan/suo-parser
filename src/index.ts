@@ -4,14 +4,14 @@ import { Parser } from "./parser";
 import { Tokenizer } from "./tokenizer";
 import { Program } from "./types";
 
-export function parse(code: string, callback: (err: Error | null, program: Program | null) => void): void {
+export function parse(code: string, callback: (err?: Error, program?: Program) => void): void {
   const tokenizer = new Tokenizer(code);
   const parser = new Parser(tokenizer);
   try {
     const program = parser.parse();
-    callback(null, program);
+    callback(undefined, program);
   } catch (err) {
-    callback(err as Error, null);
+    callback(err as Error);
   }
 }
 
@@ -27,10 +27,10 @@ export function parseAsync(code: string): PromiseLike<Program> {
   });
 }
 
-export function parseFile(filePath: string, callback: (err: Error | null, program: Program | null) => void): void {
+export function parseFile(filePath: string, callback: (err?: Error, program?: Program) => void): void {
   readFile(filePath, "utf8", (err, code) => {
     if (err) {
-      callback(err, null);
+      callback(err);
     }
     parse(code, callback);
   });
@@ -48,23 +48,23 @@ export function parseFileAsync(filePath: string): PromiseLike<Program> {
   });
 }
 
-export function generate(ast: Program, callback: (err: Error | null, output: string | null) => void): void;
+export function generate(ast: Program, callback: (err?: Error, output?: string) => void): void;
 export function generate(
   ast: Program,
   options: GeneratorOptions,
-  callback: (err: Error | null, output: string | null) => void,
+  callback: (err?: Error, output?: string) => void,
 ): void;
 export function generate(
   ast: Program,
-  optionsOrCallback: GeneratorOptions | ((err: Error | null, output: string) => void),
-  callback?: (err: Error | null, output: string) => void,
+  optionsOrCallback: GeneratorOptions | ((err?: Error, output?: string) => void),
+  callback?: (err?: Error, output?: string) => void,
 ): void {
   let options = {};
   if (typeof optionsOrCallback === "function") {
     callback = optionsOrCallback;
     options = {};
   }
-  callback?.(null, new Generator(ast, options).generate());
+  callback?.(undefined, new Generator(ast, options).generate());
 }
 
 export function generateAsync(ast: Program, options?: GeneratorOptions): PromiseLike<string> {
@@ -81,16 +81,16 @@ export function generateAsync(ast: Program, options?: GeneratorOptions): Promise
 
 export type TransformOptions = GeneratorOptions;
 
-export function transform(code: string, callback: (err: Error | null, output: string | null) => void): void;
+export function transform(code: string, callback: (err?: Error, output?: string) => void): void;
 export function transform(
   code: string,
   options: TransformOptions,
-  callback: (err: Error | null, output: string | null) => void,
+  callback: (err?: Error, output?: string) => void,
 ): void;
 export function transform(
   code: string,
-  optionsOrCallback: TransformOptions | ((err: Error | null, output: string | null) => void),
-  callback?: (err: Error | null, output: string | null) => void,
+  optionsOrCallback: TransformOptions | ((err?: Error, output?: string) => void),
+  callback?: (err?: Error, output?: string) => void,
 ): void {
   let options = {};
   if (typeof optionsOrCallback === "function") {
@@ -99,13 +99,13 @@ export function transform(
   }
   parse(code, (err, ast) => {
     if (err || !ast) {
-      callback?.(err, null);
+      callback?.(err);
     } else {
       generate(ast, options, (err, output) => {
         if (err) {
-          callback?.(err, null);
+          callback?.(err);
         } else {
-          callback?.(null, output);
+          callback?.(undefined, output);
         }
       });
     }
@@ -124,16 +124,16 @@ export function transformAsync(code: string, options?: GeneratorOptions): Promis
   });
 }
 
-export function transformFile(filePath: string, callback: (err: Error | null, output: string | null) => void): void;
+export function transformFile(filePath: string, callback: (err?: Error, output?: string) => void): void;
 export function transformFile(
   filePath: string,
   options: TransformOptions,
-  callback: (err: Error | null, output: string | null) => void,
+  callback: (err?: Error, output?: string) => void,
 ): void;
 export function transformFile(
   filePath: string,
-  optionsOrCallback: TransformOptions | ((err: Error | null, output: string | null) => void),
-  callback?: (err: Error | null, output: string | null) => void,
+  optionsOrCallback: TransformOptions | ((err?: Error, output?: string) => void),
+  callback?: (err?: Error, output?: string) => void,
 ): void {
   let options = {};
   if (typeof optionsOrCallback === "function") {
@@ -145,13 +145,13 @@ export function transformFile(
   }
   readFile(filePath, "utf8", (err, code) => {
     if (err) {
-      callback?.(err, null);
+      callback?.(err);
     } else {
       transform(code, options, (err, output) => {
         if (err) {
-          callback?.(err, null);
+          callback?.(err);
         } else {
-          callback?.(null, output);
+          callback?.(undefined, output);
         }
       });
     }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { transformFile } = require("../dist");
+const { transformFile } = require("../");
 const file = process.argv[2];
 
 transformFile(file, (err, result) => {
