@@ -361,7 +361,7 @@ export class Tokenizer {
 
     let char = this.peek();
     let value = "";
-    while (char !== "\r" && char !== "\n" && char !== "") {
+    while (char !== "\n" && char !== "") {
       value += char;
       this.index++;
       this.column++;
@@ -523,6 +523,6 @@ export class Tokenizer {
   }
 
   private isWhitespace(char: string): boolean {
-    return char === "\n" || char === "\r" || char === "\t" || char === " ";
+    return char === "\n" || char === "\t" || char === " ";
   }
 }
