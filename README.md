@@ -27,6 +27,10 @@ $ npm install suo-parser
 $ yarn add suo-parser
 ```
 
+And then you can run `suo <filename>` to transform a timeline file to a specifical format.
+
+> If you are using yarn, you can run `yarn suo <filename>` instead.
+
 ## Supporting Timeline Grammar
 
 This project is planed to support the following grammar:
