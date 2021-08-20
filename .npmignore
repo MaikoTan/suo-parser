@@ -3,6 +3,7 @@
 src/
 node_modules/
 tsconfig.json
+.npmrc
 
 # Test
 test/
