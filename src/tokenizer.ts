@@ -97,6 +97,11 @@ export class Tokenizer {
   private currentToken: Token | null;
 
   constructor(sourceCode: string) {
+    sourceCode = sourceCode
+      // strip any UTF-8 BOM off of the start of `str`, if it exists.
+      .replace(/^\uFEFF/, "")
+      // replace all line terminators with `\n`
+      .replace(/\r\n|\r/g, "\n");
     this.sourceCode = sourceCode;
     this.line = 1;
     this.column = 0;
@@ -339,11 +344,7 @@ export class Tokenizer {
     while (this.isWhitespace(char)) {
       this.index++;
       this.column++;
-      if (char === "\r" && this.peek() === "\n") {
-        this.line++;
-        this.column = 0;
-        this.index++;
-      } else if (char === "\n" || char === "\r") {
+      if (char === "\n") {
         this.line++;
         this.column = 0;
       }
