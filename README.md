@@ -5,7 +5,7 @@
 `梭 (suo-parser)` is a parser for parsing timeline files that are used in [ACT Timeline](https://github.com/grindingcoil/act_timeline),
 [FairyZeta's ACT.Timeline](https://github.com/FairyZeta/ACT.Timeline), [cactbot](https://github.com/quisquous/cactbot), etc.
 
->`梭` (pronounced /swo̞/) in Chinese means "shuttle" (a device that is used in weaving to carry the thread),
+> `梭` (pronounced /swo̞/) in Chinese means "shuttle" (a device that is used in weaving to carry the thread),
 > therefore, this word is also extended in meaning as "fast" in Chinese.
 >
 > `梭 (suo-parser)` wants to be a fast and accurate parser for ACT Timeline files.
@@ -15,6 +15,8 @@
 * Parse a timeline file into AST that is compatiable with [ESTree](https://github.com/estree/estree).
 
   > The AST types are defined in [src/types.ts](src/types.ts).
+
+* Transform a timeline file to a specifical format (currently, only [cactbot](https://github.com/quisquous/cactbot/blob/main/docs/TimelineGuide.md#timeline-file-syntax) style is supported).
 
 ## Install
 
