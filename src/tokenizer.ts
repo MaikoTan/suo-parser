@@ -85,6 +85,27 @@ const keywords = [
 
 export type Keyword = typeof keywords[number];
 
+export const Spec: [regex: RegExp, tokenType: Token["type"] | null, transformer: ((code: string, matches: RegExpExecArray) => string) | null][] = [
+  [/^\s+/, null, null],
+  [/^#(.*)/, "Comment", (_code, matches) => matches[1]],
+  [/^,/, "Punctuator", () => ","],
+  [/^([1-9]\d*(?:\.\d+)?|0?\.\d+|0)/, "NumericLiteral", (_code, matches) => matches[0]],
+  [/^(".*?(?<!\\)")|('.*?(?<!\\)')/, "StringLiteral", (_code, matches) => {
+    return matches[0]
+          // omit quotes
+          .substring(1, matches[0].length - 1)
+          // escaped characters
+          // TODO: make a correspond map?
+          .replace('\\"', '"')
+          .replace("\\'", "'")
+          .replace("\\n", "\n")
+          .replace("\\t", "\t");
+  }],
+  [/^\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.)*\])+)\//, "RegularExpression", (_code, matches) => matches[1]],
+  [new RegExp("^(" + keywords.join("|") + ")\\b"), "Keyword", (_code, matches) => matches[0]],
+  [/^\w+/, "Identifier", (_code, matches) => matches[0]],
+];
+
 export class Tokenizer {
   sourceCode: string;
   line: number;
@@ -145,359 +166,70 @@ export class Tokenizer {
       };
     }
 
-    const char = this.peek();
-    if (char === "#") {
-      return this.parseComment();
-    }
+    for (const [regex, kind, transformer] of Spec) {
+      const sourceCode = this.sourceCode.substring(this.index);
+      const matches = regex.exec(sourceCode);
 
-    if (this.isWhitespace(char)) {
-      this.eatWhitespace();
-      return this.nextToken();
-    }
-
-    if (char === ",") {
-      const token: PunctuatorToken = {
-        type: "Punctuator",
-        value: ",",
-        start: this.index,
-        end: this.index + 1,
-        loc: {
-          start: {
-            line: this.line,
-            column: this.column,
-          },
-          end: {
-            line: this.line,
-            column: this.column + 1,
-          },
-        },
-        raw: char,
-      };
-      this.index++;
-      this.column++;
-      return token;
-    }
-    if (char === "'" || char === '"') {
-      return this.parseStringLiteral();
-    }
-    if (char === ".") {
-      const next = this.peek(1);
-      if (next >= "0" && next <= "9") {
-        return this.parseNumericLiteral();
-      }
-      const token: UnknownToken = {
-        type: "Unknown",
-        start: this.index,
-        end: this.index + 1,
-        value: char,
-        loc: {
-          start: {
-            line: this.line,
-            column: this.column,
-          },
-          end: {
-            line: this.line,
-            column: this.column + 1,
-          },
-        },
-        raw: char,
-      };
-      this.index++;
-      this.column++;
-      return token;
-    }
-    if (char >= "0" && char <= "9") {
-      return this.parseNumericLiteral();
-    }
-
-    // "/" in timeline only refer to a regexp now
-    if (char === "/") {
-      return this.parseRegularExpression();
-    }
-
-    return this.parseIdentifier();
-  }
-
-  private parseRegularExpression(): RegularExpressionToken {
-    const start = this.index;
-    this.index++; // skip "/"
-    this.column++;
-
-    let value = "";
-    let char = this.peek();
-    while (char !== "\n" && char !== "") {
-      if (char === "/") {
-        this.index++;
-        this.column++;
-        break;
-      }
-      if (char === "\\") {
-        value += "\\" + this.peek(1);
-        this.index++;
-        this.column++;
-      }
-      value += char;
-      this.index++;
-      this.column++;
-      char = this.peek();
-    }
-    return {
-      type: "RegularExpression",
-      value,
-      start,
-      end: this.index,
-      loc: {
-        start: {
-          line: this.line,
-          column: start,
-        },
-        end: {
-          line: this.line,
-          column: this.column,
-        },
-      },
-      raw: this.sourceCode.substring(start, this.index),
-    };
-  }
-
-  private parseIdentifier(): KeywordToken | IdentifierToken | UnknownToken {
-    const start = this.index;
-    const columnStart = this.column;
-
-    let char = this.peek();
-    let value = "";
-    while (char !== "\n" && char !== "") {
-      if (char >= "a" && char <= "z") {
-        value += char;
-        this.index++;
-        this.column++;
-      } else if (char >= "A" && char <= "Z") {
-        value += char;
-        this.index++;
-        this.column++;
-      } else {
-        break;
-      }
-      char = this.peek();
-    }
-
-    if (value === "") {
-      return {
-        type: "Unknown",
-        value,
-        start,
-        end: this.index,
-        loc: {
-          start: {
-            line: this.line,
-            column: columnStart,
-          },
-          end: {
-            line: this.line,
-            column: this.column,
-          },
-        },
-        raw: this.sourceCode.substring(start, this.index),
-      };
-    }
-    // TODO: don't know why `includes` check function is strict typed
-    if ((keywords as readonly string[]).includes(value)) {
-      return {
-        type: "Keyword",
-        value,
-        start,
-        end: this.index,
-        loc: {
-          start: {
-            line: this.line,
-            column: columnStart,
-          },
-          end: {
-            line: this.line,
-            column: this.column,
-          },
-        },
-        raw: this.sourceCode.substring(start, this.index),
-      };
-    }
-    return {
-      type: "Identifier",
-      value,
-      start,
-      end: this.index,
-      loc: {
-        start: {
-          line: this.line,
-          column: columnStart,
-        },
-        end: {
-          line: this.line,
-          column: this.column,
-        },
-      },
-      raw: this.sourceCode.substring(start, this.index),
-    };
-  }
-
-  private eatWhitespace(): void {
-    let char = this.peek();
-    while (this.isWhitespace(char)) {
-      this.index++;
-      this.column++;
-      if (char === "\n") {
-        this.line++;
-        this.column = 0;
-      }
-      char = this.peek();
-    }
-  }
-
-  private parseComment(): CommentToken {
-    const start = this.index;
-    const columnStart = this.column;
-
-    this.index++; // first char is "#", don't record in value
-    this.column++;
-
-    let char = this.peek();
-    let value = "";
-    while (char !== "\n" && char !== "") {
-      value += char;
-      this.index++;
-      this.column++;
-      char = this.peek();
-    }
-    return {
-      type: "Comment",
-      value,
-      start,
-      end: this.index,
-      loc: {
-        start: {
-          line: this.line,
-          column: columnStart,
-        },
-        end: {
-          line: this.line,
-          column: this.column,
-        },
-      },
-      raw: this.sourceCode.substring(start, this.index),
-    };
-  }
-
-  private parseNumericLiteral(): NumericLiteralToken {
-    const start = this.index;
-    const columnStart = this.column;
-
-    let char = this.peek();
-    let value = "";
-    while (char !== "\n" && char !== "") {
-      if (char === ".") {
-        value += char;
-        this.index++;
-        this.column++;
-      } else if (char >= "0" && char <= "9") {
-        value += char;
-        this.index++;
-        this.column++;
-      } else {
-        break;
-      }
-      char = this.peek();
-    }
-    return {
-      type: "NumericLiteral",
-      value,
-      start,
-      end: this.index,
-      loc: {
-        start: {
-          line: this.line,
-          column: columnStart,
-        },
-        end: {
-          line: this.line,
-          column: this.column,
-        },
-      },
-      raw: this.sourceCode.substring(start, this.index),
-    };
-  }
-
-  private parseStringLiteral(): StringLiteralToken {
-    const start = this.index;
-    const lineStart = this.line;
-    const columnStart = this.column;
-
-    let singleQuote = false;
-    let char = this.peek();
-
-    if (char === "'") {
-      singleQuote = true;
-    }
-    this.index++;
-    this.column++;
-
-    let value = "";
-    while (char !== "\n" && char !== "") {
-      char = this.peek();
-      this.index++;
-      this.column++;
-      // escape with backslash
-      if (char === "\\") {
-        const next = this.peek(1);
-        if (next === "\n") {
-          this.index++;
-          this.column++;
-          continue;
-        }
-        if (next === "'" || next === '"') {
-          value += next;
-          this.index++;
-          this.column++;
-          continue;
-        }
-        this.index++;
-        this.column++;
-      }
-
-      // allow non-escaped single quotes in double-quoted strings
-      if (char === "'") {
-        if (singleQuote) {
-          break;
-        }
-        value += "'";
+      if (!matches) {
         continue;
       }
 
-      // allow non-escaped double quotes in single-quoted strings
-      if (char === '"') {
-        if (!singleQuote) {
-          break;
-        }
-        value += '"';
+      const newEnd = {
+        // As benchmark says, the split method is the fastest (faster than for-loop a lot)
+        // see http://jsbench.github.io/#4cc806b4507ae063efc81900cdfb9b02
+        line: this.line + (matches[0].split("\n").length - 1),
+        column: matches[0].includes("\n")
+          ? matches[0].split("\n").pop()?.length ?? matches[0].length
+          : this.column + matches[0].length,
+      };
+
+      if (kind === null || transformer === null) {
+        // whitespaces, like "\t" "\n" or " "
+        this.line = newEnd.line;
+        this.column = newEnd.column;
+        this.index += matches[0].length;
         continue;
       }
 
-      value += char;
+      const loc = {
+        raw: matches[0],
+        start: this.index,
+        end: this.index + matches[0].length,
+        loc: {
+          start: {
+            line: this.line,
+            column: this.column,
+          },
+          end: newEnd,
+        },
+      };
+
+      this.index += matches[0].length;
+      this.line = newEnd.line;
+      this.column = newEnd.column;
+
+      return {
+        ...loc,
+        type: kind,
+        value: transformer(sourceCode, matches)
+      }
     }
     return {
-      type: "StringLiteral",
-      value,
-      start,
+      type: "Unknown",
+      value: "",
+      start: this.index,
       end: this.index,
       loc: {
         start: {
-          line: lineStart,
-          column: columnStart,
+          line: this.line,
+          column: this.column,
         },
         end: {
           line: this.line,
           column: this.column,
         },
       },
-      raw: this.sourceCode.substring(start, this.index),
+      raw: this.sourceCode.substring(this.index),
     };
   }
 

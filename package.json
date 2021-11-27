@@ -21,6 +21,7 @@
     "build": "tsc",
     "test": "mocha -r ts-node/register --extension .spec.ts test",
     "prettier": "prettier --write 'src/**/*.ts' 'bin/**/*' 'test/**/*.ts' '*.json'",
+    "pretest": "yarn run prettier",
     "prepack": "rm -rf dist && yarn run prettier && yarn run build"
   },
   "devDependencies": {
