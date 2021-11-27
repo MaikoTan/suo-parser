@@ -85,13 +85,21 @@ const keywords = [
 
 export type Keyword = typeof keywords[number];
 
-export const Spec: [regex: RegExp, tokenType: Token["type"] | null, transformer: ((code: string, matches: RegExpExecArray) => string) | null][] = [
+export const Spec: [
+  regex: RegExp,
+  tokenType: Token["type"] | null,
+  transformer: ((code: string, matches: RegExpExecArray) => string) | null,
+][] = [
   [/^\s+/, null, null],
   [/^#(.*)/, "Comment", (_code, matches) => matches[1]],
   [/^,/, "Punctuator", () => ","],
   [/^([1-9]\d*(?:\.\d+)?|0?\.\d+|0)/, "NumericLiteral", (_code, matches) => matches[0]],
-  [/^(".*?(?<!\\)")|('.*?(?<!\\)')/, "StringLiteral", (_code, matches) => {
-    return matches[0]
+  [
+    /^(".*?(?<!\\)")|('.*?(?<!\\)')/,
+    "StringLiteral",
+    (_code, matches) => {
+      return (
+        matches[0]
           // omit quotes
           .substring(1, matches[0].length - 1)
           // escaped characters
@@ -99,9 +107,15 @@ export const Spec: [regex: RegExp, tokenType: Token["type"] | null, transformer:
           .replace('\\"', '"')
           .replace("\\'", "'")
           .replace("\\n", "\n")
-          .replace("\\t", "\t");
-  }],
-  [/^\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.)*\])+)\//, "RegularExpression", (_code, matches) => matches[1]],
+          .replace("\\t", "\t")
+      );
+    },
+  ],
+  [
+    /^\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.)*\])+)\//,
+    "RegularExpression",
+    (_code, matches) => matches[1],
+  ],
   [new RegExp("^(" + keywords.join("|") + ")\\b"), "Keyword", (_code, matches) => matches[0]],
   [/^\w+/, "Identifier", (_code, matches) => matches[0]],
 ];
@@ -211,8 +225,8 @@ export class Tokenizer {
       return {
         ...loc,
         type: kind,
-        value: transformer(sourceCode, matches)
-      }
+        value: transformer(sourceCode, matches),
+      };
     }
     return {
       type: "Unknown",
