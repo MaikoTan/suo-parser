@@ -1,3 +1,5 @@
+import { SourceLocation } from "./utils/location";
+
 export interface NodeBase {
   type: Node["type"];
   loc: SourceLocation;
@@ -20,16 +22,6 @@ export type Node =
   | AlertAllStatement
   | DefineStatement
   | Entry;
-
-interface SourceLocation {
-  start: Position;
-  end: Position;
-}
-
-interface Position {
-  line: number; // 1-indexed
-  column: number; // 0-indexed
-}
 
 export interface CommentLine extends NodeBase {
   type: "CommentLine";
