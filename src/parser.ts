@@ -77,9 +77,9 @@ export class Parser {
         return {
           type: "CommentLine",
           value: token.value,
-          range: [token.start, token.end],
           loc: token.loc,
-          raw: token.raw,
+          start: token.start,
+          end: token.end,
         };
 
       case "Keyword":

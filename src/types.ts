@@ -1,5 +1,17 @@
 import { SourceLocation } from "./utils/location";
 
+type CommentBase = {
+  type: "CommentLine"; // Currently we have line comment only
+  value: string;
+  start: number;
+  end: number;
+  loc: SourceLocation;
+}
+
+export type CommentLine = CommentBase;
+
+export type Comment = CommentLine;
+
 export interface NodeBase {
   type: Node["type"];
   loc: SourceLocation;
@@ -22,12 +34,6 @@ export type Node =
   | AlertAllStatement
   | DefineStatement
   | Entry;
-
-export interface CommentLine extends NodeBase {
-  type: "CommentLine";
-  value: string;
-  raw: string;
-}
 
 export interface StringLiteral extends NodeBase {
   type: "StringLiteral";
@@ -137,5 +143,5 @@ export interface Program extends NodeBase {
   sourceType: "script" | "module";
   sourceFile: string;
   tokens: Array<Token>;
-  comments: Array<Token>;
+  comments: Array<Comment>;
 }
