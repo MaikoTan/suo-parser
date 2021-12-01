@@ -1,4 +1,4 @@
-export interface BaseNode {
+export interface NodeBase {
   type: Node["type"];
   loc: SourceLocation;
   range: [number, number];
@@ -31,75 +31,75 @@ interface Position {
   column: number; // 0-indexed
 }
 
-export interface CommentLine extends BaseNode {
+export interface CommentLine extends NodeBase {
   type: "CommentLine";
   value: string;
   raw: string;
 }
 
-export interface StringLiteral extends BaseNode {
+export interface StringLiteral extends NodeBase {
   type: "StringLiteral";
   value: string;
   raw: string;
 }
 
-export interface NumericLiteral extends BaseNode {
+export interface NumericLiteral extends NodeBase {
   type: "NumericLiteral";
   value: number;
   raw: string;
 }
 
-export interface RegExpLiteral extends BaseNode {
+export interface RegExpLiteral extends NodeBase {
   type: "RegExpLiteral";
   pattern: string;
   flags: string;
   raw: string;
 }
 
-export interface SyncStatement extends BaseNode {
+export interface SyncStatement extends NodeBase {
   type: "SyncStatement";
   regex: RegExpLiteral;
 }
 
-export interface WindowStatement extends BaseNode {
+export interface WindowStatement extends NodeBase {
   type: "WindowStatement";
   before: NumericLiteral;
   after?: NumericLiteral;
 }
 
-export interface JumpStatement extends BaseNode {
+export interface JumpStatement extends NodeBase {
   type: "JumpStatement";
   time: NumericLiteral;
 }
 
-export interface DurationStatement extends BaseNode {
+export interface DurationStatement extends NodeBase {
   type: "DurationStatement";
   time: NumericLiteral;
 }
 
-export interface BeforeStatement extends BaseNode {
+export interface BeforeStatement extends NodeBase {
   type: "BeforeStatement";
   time: NumericLiteral;
 }
 
-export interface SoundStatement extends BaseNode {
+export interface SoundStatement extends NodeBase {
   type: "SoundStatement";
   file: StringLiteral;
 }
 
-export interface HideAllStatement extends BaseNode {
+export interface HideAllStatement extends NodeBase {
   type: "HideAllStatement";
   name: StringLiteral;
 }
 
-export interface AlertAllStatement extends BaseNode {
+export interface AlertAllStatement extends NodeBase {
   type: "AlertAllStatement";
   name: StringLiteral;
   before?: BeforeStatement;
   sound?: SoundStatement;
 }
 
-export interface DefineStatement extends BaseNode {
+export interface DefineStatement extends NodeBase {
   type: "DefineStatement";
   /**
    * currently only alertsound supported (?)
@@ -112,7 +112,7 @@ export interface DefineStatement extends BaseNode {
   file: StringLiteral;
 }
 
-export interface Entry extends BaseNode {
+export interface Entry extends NodeBase {
   type: "Entry";
   time: NumericLiteral;
   name: StringLiteral;
@@ -139,7 +139,7 @@ export interface Token {
   value: string;
 }
 
-export interface Program extends BaseNode {
+export interface Program extends NodeBase {
   type: "Program";
   body: Array<Statement | Entry>;
   sourceType: "script" | "module";
