@@ -6,7 +6,7 @@ type CommentBase = {
   start: number;
   end: number;
   loc: SourceLocation;
-}
+};
 
 export type CommentLine = CommentBase;
 
