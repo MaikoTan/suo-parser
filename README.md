@@ -1,6 +1,6 @@
 # 梭 suo-parser
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/MaikoTan/suo-parser/test?label=Test&style=for-the-badge) [![npm](https://img.shields.io/npm/v/suo-parser?style=for-the-badge)](https://www.npmjs.com/package/suo-parser)
+![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/MaikoTan/suo-parser/test.yml?style=for-the-badge&label=test) [![npm](https://img.shields.io/npm/v/suo-parser?style=for-the-badge)](https://www.npmjs.com/package/suo-parser)
 
 `梭 (suo-parser)` is a parser for parsing timeline files that are used in [ACT Timeline](https://github.com/grindingcoil/act_timeline),
 [FairyZeta's ACT.Timeline](https://github.com/FairyZeta/ACT.Timeline), [cactbot](https://github.com/quisquous/cactbot), etc.
