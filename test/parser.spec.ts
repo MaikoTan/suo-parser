@@ -103,4 +103,20 @@ describe("Parser", () => {
     expect(stmt).to.have.nested.property("jump.time.type", "NumericLiteral");
     expect(stmt).to.have.nested.property("jump.time.value", 0);
   });
+
+  it("timeline entry net sync", async () => {
+    const ast = await parseAsync('100.0 "test" Ability { id: "1000", name: "name" } window 10');
+    expect(ast.type).to.equal("Program");
+    expect(ast.body.length).to.equal(1);
+    const stmt = ast.body[0];
+    expect(stmt.type).to.equal("Entry");
+    expect(stmt).to.have.nested.property("name.type", "StringLiteral");
+    expect(stmt).to.have.nested.property("name.value", "test");
+    expect(stmt).to.have.nested.property("sync.syncType", "Ability");
+    expect(stmt).to.have.nested.property("sync.fields.id", "1000");
+    expect(stmt).to.have.nested.property("sync.fields.name", "name");
+    expect(stmt).to.have.nested.property("window.type", "WindowStatement");
+    expect(stmt).to.have.nested.property("window.before.type", "NumericLiteral");
+    expect(stmt).to.have.nested.property("window.before.value", 10);
+  });
 });

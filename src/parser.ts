@@ -8,6 +8,7 @@ import {
   Entry,
   HideAllStatement,
   JumpStatement,
+  NetSyncStatement,
   Program,
   SoundStatement,
   Statement,
@@ -16,6 +17,7 @@ import {
   WindowStatement,
 } from "./types";
 import { Position, SourceLocation } from "./utils/location";
+import { netSyncLogType } from "./utils/logTypes";
 
 export interface ParserOptions {
   sourceFile?: string;
@@ -52,6 +54,8 @@ export class Parser {
         } else {
           this.statements.push(stmt);
         }
+      } else {
+        throw new Error("Unexpected token: " + this.tokenizer.peekToken());
       }
     }
 
@@ -271,12 +275,16 @@ export class Parser {
           nextToken.value === "sync" ||
           nextToken.value === "window" ||
           nextToken.value === "jump" ||
-          nextToken.value === "duration"
+          nextToken.value === "duration" ||
+          netSyncLogType.includes(nextToken.value)
         )
       ) {
         break;
       }
 
+      if (netSyncLogType.includes(nextToken.value)) {
+        stmt.sync = this.parseNetSyncStatement();
+      }
       if (nextToken.value === "sync") {
         stmt.sync = this.parseSyncStatement();
       }
@@ -289,6 +297,62 @@ export class Parser {
       if (nextToken.value === "duration") {
         stmt.duration = this.parseDurationStatement();
       }
+    }
+    return stmt;
+  }
+
+  parseNetSyncStatement(): NetSyncStatement {
+    const typeToken = this.tokenizer.nextToken();
+    if (typeToken.type !== "Keyword") {
+      console.log(typeToken);
+      throw new Error(`Unexpected token type: ${typeToken.type}`);
+    }
+
+    const stmt: NetSyncStatement = {
+      type: "NetSyncStatement",
+      syncType: typeToken.value,
+      fields: {},
+      range: [typeToken.start, typeToken.end],
+      loc: new SourceLocation(typeToken.loc.start, typeToken.loc.end),
+    };
+
+    const leftBrace = this.tokenizer.nextToken();
+    if (leftBrace.type !== "Brace" || leftBrace.value !== "{") {
+      console.log(leftBrace);
+      throw new Error(`Unexpected token: ${leftBrace.value}`);
+    }
+
+    while (this.tokenizer.hasNextToken()) {
+      const nextToken = this.tokenizer.peekToken();
+      if (nextToken.type === "Identifier") {
+        const keyToken = this.tokenizer.nextToken();
+        if (keyToken.type !== "Identifier") {
+          console.log(keyToken);
+          throw new Error(`Unexpected token: ${keyToken.value}`);
+        }
+        const colonToken = this.tokenizer.nextToken();
+        if (colonToken.type !== "Punctuator" || colonToken.value !== ":") {
+          console.log(colonToken);
+          throw new Error(`Unexpected token: ${colonToken.value}`);
+        }
+        const valueToken = this.tokenizer.nextToken();
+        if (valueToken.type !== "StringLiteral" && valueToken.type !== "NumericLiteral") {
+          console.log(valueToken);
+          throw new Error(`Unexpected token: ${valueToken.value}`);
+        }
+        stmt.fields[keyToken.value] = valueToken.value;
+      }
+      const rightBrace = this.tokenizer.peekToken();
+      if (rightBrace.type === "Brace" && rightBrace.value === "}") {
+        this.tokenizer.nextToken();
+        break;
+      }
+      if (rightBrace.type === "Punctuator" && rightBrace.value === ",") {
+        this.tokenizer.nextToken();
+        continue;
+      }
+      console.log(rightBrace);
+      throw new Error(`Unexpected token: ${rightBrace.value}`);
     }
     return stmt;
   }

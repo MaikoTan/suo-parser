@@ -1,4 +1,5 @@
 import { Position, SourceLocation } from "./utils/location";
+import { netSyncLogType } from "./utils/logTypes";
 
 export interface BaseToken {
   type: string;
@@ -40,6 +41,10 @@ export interface PunctuatorToken extends BaseToken {
   type: "Punctuator";
   value: string;
 }
+export interface BraceToken extends BaseToken {
+  type: "Brace";
+  value: string;
+}
 export interface CommentToken extends BaseToken {
   type: "Comment";
   value: string;
@@ -62,6 +67,7 @@ export type Token =
   | NumericLiteralToken
   | OperatorToken
   | PunctuatorToken
+  | BraceToken
   | CommentToken
   | RegularExpressionToken
   | UnknownToken;
@@ -90,7 +96,8 @@ export const Spec: [
 ][] = [
   [/^\s+/, "Whitespace", (_code, matches) => matches[0]],
   [/^#(.*)/, "Comment", (_code, matches) => matches[1]],
-  [/^,/, "Punctuator", () => ","],
+  [/^(,|:)/, "Punctuator", (_code, matches) => matches[0]],
+  [/^(\{|\})/, "Brace", (_code, matches) => matches[0]],
   [/^([1-9]\d*(?:\.\d+)?|0?\.\d+|0)/, "NumericLiteral", (_code, matches) => matches[0]],
   [
     /^(".*?(?<!\\)")|('.*?(?<!\\)')/,
@@ -114,7 +121,7 @@ export const Spec: [
     "RegularExpression",
     (_code, matches) => matches[1],
   ],
-  [new RegExp("^(" + keywords.join("|") + ")\\b"), "Keyword", (_code, matches) => matches[0]],
+  [new RegExp("^(" + [...netSyncLogType, ...keywords].join("|") + ")\\b"), "Keyword", (_code, matches) => matches[0]],
   [/^\w+/, "Identifier", (_code, matches) => matches[0]],
 ];
 

@@ -22,6 +22,12 @@ describe("Generator", () => {
     expect(timeline).to.equal(timelineText);
   });
 
+  it("should transform timeline with net sync", async () => {
+    const timelineText = '0.0 "name" Ability { id: "1000", name: "name" } window 10';
+    const timeline = await transformAsync(timelineText);
+    expect(timeline).to.equal(timelineText);
+  });
+
   it("should transform hideall statement", async () => {
     const timelineText = 'hideall "--sync--"';
     const timeline = await transformAsync(timelineText);
