@@ -18,7 +18,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc -p ./bin",
     "test": "mocha -r ts-node/register --extension .spec.ts test",
     "prettier": "prettier --write 'src/**/*.ts' 'bin/**/*' 'test/**/*.ts' '*.json'",
     "pretest": "yarn run prettier",

@@ -9,4 +9,5 @@ yarn-error.log*
 
 # Build
 dist/
+/bin/suo.js
 /suo-parser-*.tgz
