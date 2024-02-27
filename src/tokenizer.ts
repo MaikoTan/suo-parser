@@ -1,18 +1,11 @@
+import { Position, SourceLocation } from "./utils/location";
+
 export interface BaseToken {
   type: string;
   value?: string;
   start: number;
   end: number;
-  loc: {
-    start: {
-      line: number;
-      column: number;
-    };
-    end: {
-      line: number;
-      column: number;
-    };
-  };
+  loc: SourceLocation;
   raw: string;
 }
 
@@ -166,16 +159,7 @@ export class Tokenizer {
         type: "EOF",
         start: this.index,
         end: this.index,
-        loc: {
-          start: {
-            line: this.line,
-            column: this.column,
-          },
-          end: {
-            line: this.line,
-            column: this.column,
-          },
-        },
+        loc: new SourceLocation(new Position(this.line, this.column), new Position(this.line, this.column)),
         raw: "",
       };
     }
@@ -209,13 +193,7 @@ export class Tokenizer {
         raw: matches[0],
         start: this.index,
         end: this.index + matches[0].length,
-        loc: {
-          start: {
-            line: this.line,
-            column: this.column,
-          },
-          end: newEnd,
-        },
+        loc: new SourceLocation(new Position(this.line, this.column), newEnd),
       };
 
       this.index += matches[0].length;
@@ -233,16 +211,7 @@ export class Tokenizer {
       value: "",
       start: this.index,
       end: this.index,
-      loc: {
-        start: {
-          line: this.line,
-          column: this.column,
-        },
-        end: {
-          line: this.line,
-          column: this.column,
-        },
-      },
+      loc: new SourceLocation(new Position(this.line, this.column), new Position(this.line, this.column)),
       raw: this.sourceCode.substring(this.index),
     };
   }
