@@ -3,7 +3,7 @@
 ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/MaikoTan/suo-parser/test.yml?style=for-the-badge&label=test) [![npm](https://img.shields.io/npm/v/suo-parser?style=for-the-badge)](https://www.npmjs.com/package/suo-parser)
 
 `梭 (suo-parser)` is a parser for parsing timeline files that are used in [ACT Timeline](https://github.com/grindingcoil/act_timeline),
-[FairyZeta's ACT.Timeline](https://github.com/FairyZeta/ACT.Timeline), [cactbot](https://github.com/quisquous/cactbot), etc.
+[FairyZeta's ACT.Timeline](https://github.com/FairyZeta/ACT.Timeline), [cactbot](https://github.com/OverlayPlugin/cactbot), etc.
 
 > `梭` (pronounced /swo̞/) in Chinese means "shuttle" (a device that is used in weaving to carry the thread),
 > therefore, this word is also extended in meaning as "fast" in Chinese.
@@ -12,11 +12,11 @@
 
 ## Features
 
-* Parse a timeline file into AST that is compatiable with [ESTree](https://github.com/estree/estree).
+* Parse a timeline file into AST that is compatible with [ESTree](https://github.com/estree/estree).
 
   > The AST types are defined in [src/types.ts](src/types.ts).
 
-* Transform a timeline file to a specifical format (currently, only [cactbot](https://github.com/quisquous/cactbot/blob/main/docs/TimelineGuide.md#timeline-file-syntax) style is supported).
+* Transform a timeline file to a specific format (currently, only [cactbot](https://github.com/OverlayPlugin/cactbot/blob/main/docs/TimelineGuide.md#timeline-file-syntax) style is supported).
 
 ## Install
 
