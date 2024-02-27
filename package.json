@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "bin": {
-    "suo": "bin/suo"
+    "suo": "bin/suo.js"
   },
   "author": {
     "name": "Maiko Tan",
