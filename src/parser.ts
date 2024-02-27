@@ -15,6 +15,7 @@ import {
   Token,
   WindowStatement,
 } from "./types";
+import { Position, SourceLocation } from "./utils/location";
 
 export interface ParserOptions {
   sourceFile?: string;
@@ -60,10 +61,7 @@ export class Parser {
       sourceType: this.options.sourceType ?? "module",
       sourceFile: this.options.sourceFile ?? "",
       range: [0, this.tokenizer.index],
-      loc: {
-        start: { line: 1, column: 0 },
-        end: { line: this.tokenizer.line, column: this.tokenizer.column },
-      },
+      loc: new SourceLocation(new Position(1, 0), new Position(this.tokenizer.line, this.tokenizer.column)),
       comments: this.comments,
       tokens: this.tokens,
     };
@@ -77,9 +75,9 @@ export class Parser {
         return {
           type: "CommentLine",
           value: token.value,
-          range: [token.start, token.end],
           loc: token.loc,
-          raw: token.raw,
+          start: token.start,
+          end: token.end,
         };
 
       case "Keyword":
@@ -117,16 +115,7 @@ export class Parser {
     return {
       type: "HideAllStatement",
       range: [token.start, stringToken.end],
-      loc: {
-        start: {
-          line: token.loc.start.line,
-          column: token.loc.start.column,
-        },
-        end: {
-          line: stringToken.loc.end.line,
-          column: stringToken.loc.end.column,
-        },
-      },
+      loc: new SourceLocation(token.loc.start, stringToken.loc.end),
       name: {
         range: [stringToken.start, stringToken.end],
         ...stringToken,
@@ -159,16 +148,7 @@ export class Parser {
           before = {
             type: "BeforeStatement",
             range: [nextToken.start, nextNextToken.end],
-            loc: {
-              start: {
-                line: nextToken.loc.start.line,
-                column: nextToken.loc.start.column,
-              },
-              end: {
-                line: nextNextToken.loc.end.line,
-                column: nextNextToken.loc.end.column,
-              },
-            },
+            loc: new SourceLocation(nextToken.loc.start, nextNextToken.loc.end),
             time: {
               type: "NumericLiteral",
               value: parseFloat(nextNextToken.value),
@@ -185,16 +165,7 @@ export class Parser {
           sound = {
             type: "SoundStatement",
             range: [nextToken.start, nextNextToken.end],
-            loc: {
-              start: {
-                line: nextToken.loc.start.line,
-                column: nextToken.loc.start.column,
-              },
-              end: {
-                line: nextNextToken.loc.end.line,
-                column: nextNextToken.loc.end.column,
-              },
-            },
+            loc: new SourceLocation(nextToken.loc.start, nextNextToken.loc.end),
             file: {
               range: [nextNextToken.start, nextNextToken.end],
               ...nextNextToken,
@@ -209,16 +180,7 @@ export class Parser {
     const stmt: AlertAllStatement = {
       type: "AlertAllStatement",
       range: [token.start, stringToken.end],
-      loc: {
-        start: {
-          line: token.loc.start.line,
-          column: token.loc.start.column,
-        },
-        end: {
-          line: stringToken.loc.end.line,
-          column: stringToken.loc.end.column,
-        },
-      },
+      loc: new SourceLocation(token.loc.start, stringToken.loc.end),
       name: {
         range: [stringToken.start, stringToken.end],
         ...stringToken,
@@ -258,16 +220,7 @@ export class Parser {
     const stmt: DefineStatement = {
       type: "DefineStatement",
       range: [token.start, identifier.end],
-      loc: {
-        start: {
-          line: token.loc.start.line,
-          column: token.loc.start.column,
-        },
-        end: {
-          line: identifier.loc.end.line,
-          column: identifier.loc.end.column,
-        },
-      },
+      loc: new SourceLocation(token.loc.start, identifier.loc.end),
       defineType: "alertsound",
       name: {
         range: [nameToken.start, nameToken.end],
@@ -296,16 +249,7 @@ export class Parser {
     const stmt: Entry = {
       type: "Entry",
       range: [token.start, nameStrLit.end],
-      loc: {
-        start: {
-          line: token.loc.start.line,
-          column: token.loc.start.column,
-        },
-        end: {
-          line: nameStrLit.loc.end.line,
-          column: nameStrLit.loc.end.column,
-        },
-      },
+      loc: new SourceLocation(token.loc.start, nameStrLit.loc.end),
       time: {
         type: "NumericLiteral",
         value: parseFloat(token.value),
@@ -360,16 +304,7 @@ export class Parser {
     const stmt: SyncStatement = {
       type: "SyncStatement",
       range: [token.start, token.end],
-      loc: {
-        start: {
-          line: token.loc.start.line,
-          column: token.loc.start.column,
-        },
-        end: {
-          line: token.loc.end.line,
-          column: token.loc.end.column,
-        },
-      },
+      loc: token.loc,
       regex: {
         type: "RegExpLiteral",
         flags: "",
@@ -393,16 +328,7 @@ export class Parser {
     const stmt: WindowStatement = {
       type: "WindowStatement",
       range: [token.start, numLit.end],
-      loc: {
-        start: {
-          line: token.loc.start.line,
-          column: token.loc.start.column,
-        },
-        end: {
-          line: numLit.loc.end.line,
-          column: numLit.loc.end.column,
-        },
-      },
+      loc: new SourceLocation(token.loc.start, numLit.loc.end),
       // assign the same value temporarily
       before: {
         type: "NumericLiteral",
@@ -449,16 +375,7 @@ export class Parser {
     const stmt: JumpStatement = {
       type: "JumpStatement",
       range: [token.start, numLit.end],
-      loc: {
-        start: {
-          line: token.loc.start.line,
-          column: token.loc.start.column,
-        },
-        end: {
-          line: numLit.loc.end.line,
-          column: numLit.loc.end.column,
-        },
-      },
+      loc: new SourceLocation(token.loc.start, numLit.loc.end),
       time: {
         type: "NumericLiteral",
         value: parseFloat(numLit.value),
@@ -482,16 +399,7 @@ export class Parser {
     const stmt: DurationStatement = {
       type: "DurationStatement",
       range: [token.start, numLit.end],
-      loc: {
-        start: {
-          line: token.loc.start.line,
-          column: token.loc.start.column,
-        },
-        end: {
-          line: numLit.loc.end.line,
-          column: numLit.loc.end.column,
-        },
-      },
+      loc: new SourceLocation(token.loc.start, numLit.loc.end),
       time: {
         type: "NumericLiteral",
         value: parseFloat(numLit.value),
