@@ -69,6 +69,38 @@ describe("Tokenizer", () => {
     expect(next.end).equals(13);
   });
 
+  it("should tokenize sync netsync command", () => {
+    const input = 'Ability { id: "1000", name: "name" }';
+    const tokens = new Tokenizer(input);
+    let next = tokens.nextToken();
+    expect(next.type).equals("Keyword");
+    expect(next.value).equals("Ability");
+    next = tokens.nextToken();
+    expect(next.type).equals("Brace");
+    expect(next.value).equals("{");
+    next = tokens.nextToken();
+    expect(next.type).equals("Identifier");
+    expect(next.value).equals("id");
+    next = tokens.nextToken();
+    expect(next.type).equals("Punctuator");
+    expect(next.value).equals(":");
+    next = tokens.nextToken();
+    expect(next.type).equals("StringLiteral");
+    expect(next.value).equals("1000");
+    next = tokens.nextToken();
+    expect(next.type).equals("Punctuator");
+    expect(next.value).equals(",");
+    next = tokens.nextToken();
+    expect(next.type).equals("Identifier");
+    expect(next.value).equals("name");
+    next = tokens.nextToken();
+    expect(next.type).equals("Punctuator");
+    expect(next.value).equals(":");
+    next = tokens.nextToken();
+    expect(next.type).equals("StringLiteral");
+    expect(next.value).equals("name");
+  });
+
   it("should tokenize window command", () => {
     const input = "window 10.0\nwindow 1,1";
     const tokens = new Tokenizer(input);

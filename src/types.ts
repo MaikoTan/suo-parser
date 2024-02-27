@@ -25,6 +25,7 @@ export type Node =
   | NumericLiteral
   | RegExpLiteral
   | SyncStatement
+  | NetSyncStatement
   | WindowStatement
   | JumpStatement
   | DurationStatement
@@ -57,6 +58,12 @@ export interface RegExpLiteral extends NodeBase {
 export interface SyncStatement extends NodeBase {
   type: "SyncStatement";
   regex: RegExpLiteral;
+}
+
+export interface NetSyncStatement extends NodeBase {
+  type: "NetSyncStatement";
+  syncType: string;
+  fields: Record<string, string | number>;
 }
 
 export interface WindowStatement extends NodeBase {
@@ -114,7 +121,7 @@ export interface Entry extends NodeBase {
   type: "Entry";
   time: NumericLiteral;
   name: StringLiteral;
-  sync?: SyncStatement;
+  sync?: SyncStatement | NetSyncStatement;
   window?: WindowStatement;
   duration?: DurationStatement;
   jump?: JumpStatement;
@@ -123,6 +130,7 @@ export interface Entry extends NodeBase {
 export type Literal = StringLiteral | NumericLiteral | RegExpLiteral;
 export type Statement =
   | SyncStatement
+  | NetSyncStatement
   | WindowStatement
   | JumpStatement
   | DurationStatement

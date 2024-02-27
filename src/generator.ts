@@ -41,9 +41,14 @@ export class Generator {
     const time = stmt.time.value.toFixed(1); // time should be a float with 1 digit
     const name = this.escapeString(stmt.name.value);
     let ret = `${time} "${name}"`;
-    if (stmt.sync) {
+    if (stmt.sync && stmt.sync.type === "SyncStatement") {
       const regex = stmt.sync.regex.pattern.replace(/\\/g, "\\\\").replace(/(?<!\\)\//g, "\\/");
       ret += ` sync /${regex}/`;
+    }
+    if (stmt.sync && stmt.sync.type === "NetSyncStatement") {
+      ret += ` ${stmt.sync.syncType} { ${Object.entries(stmt.sync.fields)
+        .map(([k, v]) => k + ": " + (typeof v === "string" ? '"' + v + '"' : v))
+        .join(", ")} }`;
     }
     if (stmt.duration) {
       const duration = this.simplifyNum(stmt.duration.time.value);

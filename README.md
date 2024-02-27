@@ -46,7 +46,12 @@ alert-all-stmt = "alertall" ws name [ws before-stmt] [ws sound-stmt]
 define-stmt = "define" ws "alertsound" ws name ws file-name
 text-popup-stmt = ( "info" | "alert" | "alarm" ) "text" ws name time before-stmt [ws name]
 
-sync-stmt = "sync" ws "/" regex "/"
+sync-stmt = sync-regex-stmt | sync-netsync-stmt
+sync-regex-stmt = "sync" ws "/" regex "/"
+sync-netsync-stmt = netsync-type ws "{" ws sync-netsync-key-value-pair (ws "," ws sync-netsync-key-value-pair)* ws "}"
+netsync-type = STRING+
+sync-netsync-key-value-pair = name ws ":" ws '"' STRING+ '"'
+
 duration-stmt = "duration" ws time
 window-stmt = "window" ws time [ [ws] "," [ws] time ]
 jump-stmt = "jump" ws time
