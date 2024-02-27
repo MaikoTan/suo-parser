@@ -72,36 +72,32 @@ describe("Tokenizer", () => {
   it("should tokenize window command", () => {
     const input = "window 10.0\nwindow 1,1";
     const tokens = new Tokenizer(input);
-    const tokenTypes = [
-      tokens.nextToken(),
-      tokens.nextToken(),
-      tokens.nextToken(),
-      tokens.nextToken(),
-      tokens.nextToken(),
-      tokens.nextToken(),
-      tokens.nextToken(),
-    ].map((token) => token.type);
+    const tokenTypes = tokens.allTokens.map((token) => token.type);
     expect(tokenTypes).deep.equals([
       "Keyword",
+      "Whitespace",
       "NumericLiteral",
+      "Whitespace",
       "Keyword",
+      "Whitespace",
       "NumericLiteral",
       "Punctuator",
       "NumericLiteral",
-      "EOF",
     ]);
   });
 
   it("should tokenize jump command", () => {
     const input = "jump 10.0\njump 10";
     const tokens = new Tokenizer(input);
-    const tokenTypes = [
-      tokens.nextToken(),
-      tokens.nextToken(),
-      tokens.nextToken(),
-      tokens.nextToken(),
-      tokens.nextToken(),
-    ].map((token) => token.type);
-    expect(tokenTypes).deep.equals(["Keyword", "NumericLiteral", "Keyword", "NumericLiteral", "EOF"]);
+    const tokenTypes = tokens.allTokens.map((token) => token.type);
+    expect(tokenTypes).deep.equals([
+      "Keyword",
+      "Whitespace",
+      "NumericLiteral",
+      "Whitespace",
+      "Keyword",
+      "Whitespace",
+      "NumericLiteral",
+    ]);
   });
 });

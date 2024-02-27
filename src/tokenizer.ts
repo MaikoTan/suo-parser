@@ -12,6 +12,10 @@ export interface BaseToken {
 export interface EOFToken extends BaseToken {
   type: "EOF";
 }
+export interface WhitespaceToken extends BaseToken {
+  type: "Whitespace";
+  value: string;
+}
 export interface KeywordToken extends BaseToken {
   type: "Keyword";
   value: string;
@@ -51,6 +55,7 @@ export interface UnknownToken extends BaseToken {
 
 export type Token =
   | EOFToken
+  | WhitespaceToken
   | KeywordToken
   | IdentifierToken
   | StringLiteralToken
@@ -80,10 +85,10 @@ export type Keyword = typeof keywords[number];
 
 export const Spec: [
   regex: RegExp,
-  tokenType: Token["type"] | null,
-  transformer: ((code: string, matches: RegExpExecArray) => string) | null,
+  tokenType: Token["type"],
+  transformer: (code: string, matches: RegExpExecArray) => string,
 ][] = [
-  [/^\s+/, null, null],
+  [/^\s+/, "Whitespace", (_code, matches) => matches[0]],
   [/^#(.*)/, "Comment", (_code, matches) => matches[1]],
   [/^,/, "Punctuator", () => ","],
   [/^([1-9]\d*(?:\.\d+)?|0?\.\d+|0)/, "NumericLiteral", (_code, matches) => matches[0]],
@@ -148,6 +153,14 @@ export class Tokenizer {
   }
 
   nextToken(): Token {
+    const token = this.nextTokenWithWhiteSpaces();
+    if (token.type === "Whitespace") {
+      return this.nextToken();
+    }
+    return token;
+  }
+
+  nextTokenWithWhiteSpaces(): Token {
     if (this.currentToken) {
       const token = this.currentToken;
       this.currentToken = null;
@@ -180,14 +193,6 @@ export class Tokenizer {
           ? matches[0].split("\n").pop()?.length ?? matches[0].length
           : this.column + matches[0].length,
       };
-
-      if (kind === null || transformer === null) {
-        // whitespaces, like "\t" "\n" or " "
-        this.line = newEnd.line;
-        this.column = newEnd.column;
-        this.index += matches[0].length;
-        continue;
-      }
 
       const loc = {
         raw: matches[0],
@@ -237,7 +242,14 @@ export class Tokenizer {
     return this.sourceCode.charAt(++this.index);
   }
 
-  private isWhitespace(char: string): boolean {
-    return char === "\n" || char === "\t" || char === " ";
+  get allTokens(): Token[] {
+    if (this.line !== 1 || this.column !== 0 || this.index !== 0) {
+      throw new Error("Tokenizer is not at the beginning of the source code");
+    }
+    const tokens: Token[] = [];
+    while (this.hasNextToken()) {
+      tokens.push(this.nextTokenWithWhiteSpaces());
+    }
+    return tokens;
   }
 }
