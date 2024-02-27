@@ -7,6 +7,10 @@
   "bin": {
     "suo": "bin/suo.js"
   },
+  "files": [
+    "dist",
+    "bin/*.js"
+  ],
   "author": {
     "name": "Maiko Tan",
     "email": "maiko.tan.coding@gmail.com",
