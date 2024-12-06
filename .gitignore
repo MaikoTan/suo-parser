@@ -11,3 +11,8 @@ yarn-error.log*
 dist/
 /bin/suo.js
 /suo-parser-*.tgz
+
+
+# Added by cargo
+
+/target
