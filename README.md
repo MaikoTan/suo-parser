@@ -5,7 +5,7 @@
 `梭 (suo-parser)` is a parser for parsing timeline files that are used in [ACT Timeline](https://github.com/grindingcoil/act_timeline),
 [FairyZeta's ACT.Timeline](https://github.com/FairyZeta/ACT.Timeline), [cactbot](https://github.com/OverlayPlugin/cactbot), etc.
 
-> `梭` (pronounced /swo̞/) in Chinese means "shuttle" (a device that is used in weaving to carry the thread),
+> `梭` (pronounced /swo̞˥/) in Chinese means "shuttle" (a device that is used in weaving to carry the thread),
 > therefore, this word is also extended in meaning as "fast" in Chinese.
 >
 > `梭 (suo-parser)` wants to be a fast and accurate parser for ACT Timeline files.
