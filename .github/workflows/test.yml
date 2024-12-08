@@ -19,7 +19,7 @@ jobs:
 
       - name: Test
         run: |
-          run: cargo test --all-features
+          cargo test --all-features
 
   # Check formatting with rustfmt
   formatting:
