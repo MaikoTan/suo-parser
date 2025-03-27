@@ -4,12 +4,6 @@ mod tokenizer;
 mod types;
 mod utils;
 
-// import { readFile } from "fs";
-// import { Generator, GeneratorOptions } from "./generator";
-// import { Parser } from "./parser";
-// import { Tokenizer } from "./tokenizer";
-// import { Program } from "./types";
-
 // export function parse(code: string, callback: (err?: Error, program?: Program) => void): void {
 //   const tokenizer = new Tokenizer(code);
 //   const parser = new Parser(tokenizer);
@@ -175,18 +169,3 @@ mod utils;
 //     });
 //   });
 // }
-
-pub fn add(left: usize, right: usize) -> usize {
-  left + right
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn it_works() {
-    let result = add(2, 2);
-    assert_eq!(result, 4);
-  }
-}

@@ -1,12 +1,13 @@
 use std::fmt::{Display, Error, Formatter};
 
+#[derive(Debug, Clone)]
 pub struct Position {
-  pub line: usize,
-  pub column: usize,
+  pub line: u32,
+  pub column: u32,
 }
 
 impl Position {
-  pub fn new(line: usize, column: usize) -> Self {
+  pub fn new(line: u32, column: u32) -> Self {
     Self { line, column }
   }
 }
@@ -17,6 +18,7 @@ impl Display for Position {
   }
 }
 
+#[derive(Debug, Clone)]
 pub struct SourceLocation {
   pub start: Position,
   pub end: Position,

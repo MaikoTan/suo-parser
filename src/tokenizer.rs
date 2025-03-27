@@ -1,76 +1,32 @@
-// import { Position, SourceLocation } from "./utils/location";
-// import { netSyncLogType } from "./utils/logTypes";
+use super::utils::location::{Position, SourceLocation};
+use super::utils::log_types::NetSyncLogType;
 
-// export interface BaseToken {
-//   type: string;
-//   value?: string;
-//   start: number;
-//   end: number;
-//   loc: SourceLocation;
-//   raw: string;
-// }
+#[derive(Debug, Clone, PartialEq)]
+pub enum TokenType {
+  EOF,
+  Whitespace,
+  Keyword,
+  Identifier,
+  StringLiteral,
+  NumericLiteral,
+  RegularExpression,
+  Operator,
+  Punctuator,
+  Brace,
+  Comment,
+  /// Unknown token
+  Unknown,
+}
 
-// export interface EOFToken extends BaseToken {
-//   type: "EOF";
-// }
-// export interface WhitespaceToken extends BaseToken {
-//   type: "Whitespace";
-//   value: string;
-// }
-// export interface KeywordToken extends BaseToken {
-//   type: "Keyword";
-//   value: string;
-// }
-// export interface IdentifierToken extends BaseToken {
-//   type: "Identifier";
-//   value: string;
-// }
-// export interface StringLiteralToken extends BaseToken {
-//   type: "StringLiteral";
-//   value: string;
-// }
-// export interface NumericLiteralToken extends BaseToken {
-//   type: "NumericLiteral";
-//   value: string;
-// }
-// export interface OperatorToken extends BaseToken {
-//   type: "Operator";
-//   value: string;
-// }
-// export interface PunctuatorToken extends BaseToken {
-//   type: "Punctuator";
-//   value: string;
-// }
-// export interface BraceToken extends BaseToken {
-//   type: "Brace";
-//   value: string;
-// }
-// export interface CommentToken extends BaseToken {
-//   type: "Comment";
-//   value: string;
-// }
-// export interface RegularExpressionToken extends BaseToken {
-//   type: "RegularExpression";
-//   value: string;
-// }
-// export interface UnknownToken extends BaseToken {
-//   type: "Unknown";
-//   value: string;
-// }
-
-// export type Token =
-//   | EOFToken
-//   | WhitespaceToken
-//   | KeywordToken
-//   | IdentifierToken
-//   | StringLiteralToken
-//   | NumericLiteralToken
-//   | OperatorToken
-//   | PunctuatorToken
-//   | BraceToken
-//   | CommentToken
-//   | RegularExpressionToken
-//   | UnknownToken;
+#[derive(Debug, Clone)]
+pub struct Token {
+  pub type_: TokenType,
+  pub value: Option<String>,
+  pub start: u32,
+  pub end: u32,
+  pub loc: SourceLocation,
+  pub raw: String,
+}
 
 // const keywords = [
 //   "sync",
@@ -86,6 +42,21 @@
 //   "alerttext",
 //   "alarmtext",
 // ] as const;
+
+pub enum Keyword {
+  Sync,
+  Window,
+  Jump,
+  Duration,
+  HideAll,
+  AlertAll,
+  Before,
+  Sound,
+  Define,
+  InfoText,
+  AlertText,
+  AlarmText,
+}
 
 // export type Keyword = typeof keywords[number];
 
@@ -261,141 +232,249 @@
 //   }
 // }
 
+pub struct Tokenizer {
+  source_code: String,
+  line: u32,
+  column: u32,
+  index: u32,
+
+  /// cache the next token
+  current_token: Option<Token>,
+}
+
+impl Tokenizer {
+  pub fn new(source_code: String) -> Self {
+    let source_code = source_code
+      // strip any UTF-8 BOM off of the start of `str`, if it exists.
+      .replace("\u{feff}", "")
+      // replace all line terminators with `\n`
+      .replace("\r\n", "\n")
+      .replace("\r", "\n");
+    Tokenizer {
+      source_code,
+      line: 1,
+      column: 0,
+      index: 0,
+      current_token: None,
+    }
+  }
+
+  pub fn peek_token(&mut self) -> Token {
+    if let Some(token) = &self.current_token {
+      return token.clone();
+    }
+
+    self.current_token = Some(self.next_token());
+    self.current_token.clone().unwrap()
+  }
+
+  pub fn next_token(&mut self) -> Token {
+    let token = self.next_token_with_white_spaces();
+    if token.type_ == TokenType::Whitespace {
+      return self.next_token();
+    }
+    token
+  }
+
+  pub fn next_token_with_white_spaces(&mut self) -> Token {
+    if let Some(token) = &self.current_token {
+      let token = token.clone();
+      self.current_token = None;
+      return token;
+    }
+
+    if self.index >= self.source_code.len() as u32 {
+      return Token {
+        type_: TokenType::EOF,
+        value: None,
+        start: self.index,
+        end: self.index,
+        loc: SourceLocation::new(Position::new(self.line, self.column), Position::new(self.line, self.column)),
+        raw: "".to_string(),
+      };
+    }
+
+    return Token {
+      type_: TokenType::Unknown,
+      value: None,
+      start: self.index,
+      end: self.index,
+      loc: SourceLocation::new(Position::new(self.line, self.column), Position::new(self.line, self.column)),
+      raw: self.source_code[self.index as usize..].to_string(),
+    };
+  }
+
+  pub fn has_next_token(&self) -> bool {
+    (self.current_token.is_some() && self.current_token.as_ref().unwrap().type_ != TokenType::EOF)
+      || self.index < self.source_code.len() as u32
+  }
+
+  pub fn peek(&self, next: Option<u32>) -> char {
+    if let Some(next) = next {
+      return self.source_code.chars().nth((self.index + next) as usize).unwrap();
+    }
+    self.source_code.chars().nth(self.index as usize).unwrap()
+  }
+
+  pub fn next(&mut self) -> char {
+    self.index += 1;
+    self.source_code.chars().nth(self.index as usize).unwrap()
+  }
+
+  pub fn all_tokens(&mut self) -> impl Iterator<Item = Token> + '_ {
+    if self.line != 1 || self.column != 0 || self.index != 0 {
+      panic!("Tokenizer is not at the beginning of the source code");
+    }
+    (0..).map(move |_| self.next_token_with_white_spaces())
+  }
+}
+
 #[cfg(test)]
 mod tests {
-  // import { expect } from "chai";
-  // import { Tokenizer } from "../src/tokenizer";
+  use super::{Tokenizer, TokenType};
 
-  // describe("Tokenizer", () => {
-  //   it("should tokenize a simple timeline entry", () => {
-  //     const input = '100 "name"';
-  //     const tokens = new Tokenizer(input);
-  //     let next = tokens.nextToken();
-  //     expect(next.type).equals("NumericLiteral");
-  //     expect(next.value).equals("100");
-  //     expect(next.start).equals(0);
-  //     expect(next.end).equals(3);
-  //     next = tokens.nextToken();
-  //     expect(next.type).equals("StringLiteral");
-  //     expect(next.value).equals("name");
-  //     expect(next.start).equals(4);
-  //     expect(next.end).equals(10);
-  //     next = tokens.nextToken(); // EOF
-  //     expect(next.type).equals("EOF");
-  //   });
+  #[test]
+  fn test_tokenizer_simple_entry() {
+    let input = "100 \"name\"";
+    let mut tokens = Tokenizer::new(input.to_string());
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::NumericLiteral);
+    assert_eq!(next.value, Some("100".to_string()));
+    assert_eq!(next.start, 0);
+    assert_eq!(next.end, 3);
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::StringLiteral);
+    assert_eq!(next.value, Some("name".to_string()));
+    assert_eq!(next.start, 4);
+    assert_eq!(next.end, 10);
+    let next = tokens.next_token(); // EOF
+    assert_eq!(next.type_, TokenType::EOF);
+  }
 
-  //   it("should tokenize string with escape", () => {
-  //     const input = '"\\""';
-  //     const tokens = new Tokenizer(input);
-  //     let next = tokens.nextToken();
-  //     expect(next.type).equals("StringLiteral");
-  //     expect(next.value).equals('"');
-  //   });
+  #[test]
+  fn test_tokenizer_string_with_escape() {
+    let input = "\"\\\"\"";
+    let mut tokens = Tokenizer::new(input.to_string());
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::StringLiteral);
+    assert_eq!(next.value, Some("\"".to_string()));
+  }
 
-  //   it("should tokenize string mixup with single and double quotes", () => {
-  //     const input = "\"I'm\" 'str\"ing'";
-  //     const tokens = new Tokenizer(input);
-  //     let next = tokens.nextToken();
-  //     expect(next.type).equals("StringLiteral");
-  //     expect(next.value).equals("I'm");
-  //     next = tokens.nextToken();
-  //     expect(next.type).equals("StringLiteral");
-  //     expect(next.value).equals('str"ing');
-  //   });
+  #[test]
+  fn test_tokenizer_string_mixup() {
+    let input = "\"I'm\" 'str\"ing'";
+    let mut tokens = Tokenizer::new(input.to_string());
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::StringLiteral);
+    assert_eq!(next.value, Some("I'm".to_string()));
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::StringLiteral);
+    assert_eq!(next.value, Some("str\"ing".to_string()));
+  }
 
-  //   it("should tokenize a timeline entry with a comment", () => {
-  //     const input = '10.0 "name" # comment';
-  //     const tokens = new Tokenizer(input);
-  //     let next = tokens.nextToken();
-  //     expect(next.type).equals("NumericLiteral");
-  //     expect(next.value).equals("10.0");
-  //     next = tokens.nextToken();
-  //     expect(next.type).equals("StringLiteral");
-  //     expect(next.value).equals("name");
-  //     next = tokens.nextToken(); // comment
-  //     expect(next.type).equals("Comment");
-  //     expect(next.value).equals(" comment");
-  //     expect(next.raw).equals("# comment");
-  //   });
+  #[test]
+  fn test_tokenizer_timeline_entry_with_comment() {
+    let input = "10.0 \"name\" # comment";
+    let mut tokens = Tokenizer::new(input.to_string());
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::NumericLiteral);
+    assert_eq!(next.value, Some("10.0".to_string()));
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::StringLiteral);
+    assert_eq!(next.value, Some("name".to_string()));
+    let next = tokens.next_token(); // comment
+    assert_eq!(next.type_, TokenType::Comment);
+    assert_eq!(next.value, Some(" comment".to_string()));
+    assert_eq!(next.raw, "# comment");
+  }
 
-  //   it("should tokenize sync command with regex", () => {
-  //     const input = "sync /regexp/";
-  //     const tokens = new Tokenizer(input);
-  //     let next = tokens.nextToken();
-  //     expect(next.type).equals("Keyword");
-  //     expect(next.value).equals("sync");
-  //     expect(next.start).equals(0);
-  //     expect(next.end).equals(4);
-  //     next = tokens.nextToken();
-  //     expect(next.type).equals("RegularExpression");
-  //     expect(next.value).equals("regexp");
-  //     expect(next.raw).equals("/regexp/");
-  //     expect(next.start).equals(5);
-  //     expect(next.end).equals(13);
-  //   });
+  #[test]
+  fn test_tokenizer_sync_command_with_regex() {
+    let input = "sync /regexp/";
+    let mut tokens = Tokenizer::new(input.to_string());
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::Keyword);
+    assert_eq!(next.value, Some("sync".to_string()));
+    assert_eq!(next.start, 0);
+    assert_eq!(next.end, 4);
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::RegularExpression);
+    assert_eq!(next.value, Some("regexp".to_string()));
+    assert_eq!(next.raw, "/regexp/");
+    assert_eq!(next.start, 5);
+    assert_eq!(next.end, 13);
+  }
 
-  //   it("should tokenize sync netsync command", () => {
-  //     const input = 'Ability { id: "1000", name: "name" }';
-  //     const tokens = new Tokenizer(input);
-  //     let next = tokens.nextToken();
-  //     expect(next.type).equals("Keyword");
-  //     expect(next.value).equals("Ability");
-  //     next = tokens.nextToken();
-  //     expect(next.type).equals("Brace");
-  //     expect(next.value).equals("{");
-  //     next = tokens.nextToken();
-  //     expect(next.type).equals("Identifier");
-  //     expect(next.value).equals("id");
-  //     next = tokens.nextToken();
-  //     expect(next.type).equals("Punctuator");
-  //     expect(next.value).equals(":");
-  //     next = tokens.nextToken();
-  //     expect(next.type).equals("StringLiteral");
-  //     expect(next.value).equals("1000");
-  //     next = tokens.nextToken();
-  //     expect(next.type).equals("Punctuator");
-  //     expect(next.value).equals(",");
-  //     next = tokens.nextToken();
-  //     expect(next.type).equals("Identifier");
-  //     expect(next.value).equals("name");
-  //     next = tokens.nextToken();
-  //     expect(next.type).equals("Punctuator");
-  //     expect(next.value).equals(":");
-  //     next = tokens.nextToken();
-  //     expect(next.type).equals("StringLiteral");
-  //     expect(next.value).equals("name");
-  //   });
+  #[test]
+  fn test_tokenizer_sync_netsync_command() {
+    let input = "Ability { id: \"1000\", name: \"name\" }";
+    let mut tokens = Tokenizer::new(input.to_string());
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::Keyword);
+    assert_eq!(next.value, Some("Ability".to_string()));
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::Brace);
+    assert_eq!(next.value, Some("{".to_string()));
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::Identifier);
+    assert_eq!(next.value, Some("id".to_string()));
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::Punctuator);
+    assert_eq!(next.value, Some(":".to_string()));
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::StringLiteral);
+    assert_eq!(next.value, Some("1000".to_string()));
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::Punctuator);
+    assert_eq!(next.value, Some(",".to_string()));
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::Identifier);
+    assert_eq!(next.value, Some("name".to_string()));
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::Punctuator);
+    assert_eq!(next.value, Some(":".to_string()));
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::StringLiteral);
+    assert_eq!(next.value, Some("name".to_string()));
+  }
 
-  //   it("should tokenize window command", () => {
-  //     const input = "window 10.0\nwindow 1,1";
-  //     const tokens = new Tokenizer(input);
-  //     const tokenTypes = tokens.allTokens.map((token) => token.type);
-  //     expect(tokenTypes).deep.equals([
-  //       "Keyword",
-  //       "Whitespace",
-  //       "NumericLiteral",
-  //       "Whitespace",
-  //       "Keyword",
-  //       "Whitespace",
-  //       "NumericLiteral",
-  //       "Punctuator",
-  //       "NumericLiteral",
-  //     ]);
-  //   });
+  #[test]
+  fn test_tokenizer_window_command() {
+    let input = "window 10.0\nwindow 1,1";
+    let mut tokens = Tokenizer::new(input.to_string());
+    let token_types: Vec<_> = tokens.all_tokens().map(|token| token.type_).collect();
+    assert_eq!(
+      token_types,
+      vec![
+        TokenType::Keyword,
+        TokenType::Whitespace,
+        TokenType::NumericLiteral,
+        TokenType::Whitespace,
+        TokenType::Keyword,
+        TokenType::Whitespace,
+        TokenType::NumericLiteral,
+        TokenType::Punctuator,
+        TokenType::NumericLiteral,
+      ]
+    );
+  }
 
-  //   it("should tokenize jump command", () => {
-  //     const input = "jump 10.0\njump 10";
-  //     const tokens = new Tokenizer(input);
-  //     const tokenTypes = tokens.allTokens.map((token) => token.type);
-  //     expect(tokenTypes).deep.equals([
-  //       "Keyword",
-  //       "Whitespace",
-  //       "NumericLiteral",
-  //       "Whitespace",
-  //       "Keyword",
-  //       "Whitespace",
-  //       "NumericLiteral",
-  //     ]);
-  //   });
-  // });
+  #[test]
+  fn test_tokenizer_jump_command() {
+    let input = "jump 10.0\njump 10";
+    let mut tokens = Tokenizer::new(input.to_string());
+    let token_types: Vec<TokenType> = tokens.all_tokens().map(|token| token.type_).collect();
+    assert_eq!(
+      token_types,
+      vec![
+        TokenType::Keyword,
+        TokenType::Whitespace,
+        TokenType::NumericLiteral,
+        TokenType::Whitespace,
+        TokenType::Keyword,
+        TokenType::Whitespace,
+        TokenType::NumericLiteral,
+      ]
+    );
+  }
 }
