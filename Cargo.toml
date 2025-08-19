@@ -40,6 +40,9 @@ wee_alloc = { version = "0.4.2", optional = true }
 [target."cfg(debug_assertions)".dependencies]
 console_error_panic_hook = "0.1.5"
 
+[dev-dependencies]
+insta = { version = "1.43.1", features = ["yaml"] }
+
 [target.'cfg(feature = "wasm")'.dev-dependencies]
 wasm-pack = "0.13"
 # For unit tests
