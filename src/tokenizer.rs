@@ -3,15 +3,25 @@ use super::utils::log_types::NetSyncLogType;
 
 #[derive(Debug, Clone)]
 pub enum TokenKind {
+    /// Including keywords, NetSyncLogType variants
     Keyword,
+    /// Double-quoted string literal
     StringLiteral,
+    /// Numeric literal (integer and float)
     NumericLiteral,
+    /// Regular expression literal (without /)
     RegularExpression,
+    /// ","
     Punctuator,
+    /// ":"
     Colon,
+    /// "{" or "}"
     Brace,
+    /// Any identifier (variable names, function names, etc.)
     Identifier,
+    /// Single-line comment
     Comment,
+    /// Whitespace (spaces, tabs, newlines)
     Whitespace,
     /// Unknown token
     Unknown,
@@ -150,6 +160,8 @@ impl<'a> Tokenizer<'a> {
 
     fn consume_keyword(&mut self) -> Token {
         let keywords = [
+            "label",
+            "forcejump",
             "sync",
             "window",
             "jump",
@@ -468,5 +480,61 @@ mod tests {
         let vec = all_tokens("jump 10.0\njump 10");
 
         insta::assert_debug_snapshot!("Jump Command", vec);
+    }
+
+    #[test]
+    fn test_tokenizer_full_timeline() {
+        // Taken from https://github.com/OverlayPlugin/cactbot/blob/main/ui/raidboss/data/00-misc/test.txt
+        let vec = all_tokens(r#"# I am but a wee little test timeline
+#
+# Teleport your way to Summerford Farms, ancestral home of striking dummies.
+#
+# Make sure emotes show up in your log, such that /bow generates a line such
+# as "You bow courteously to the striking dummy." Once that is turned on,
+# /bow to the striking dummy to start the timeline.
+#
+# Alternatively, do a countdown, such as "/countdown 5" which will also
+# start it.
+#
+# /poke, /pysch, or /laugh at the striking dummy for trigger examples.
+#
+# /goodbye to the striking dummy to stop the timeline.
+
+hideall "--Reset--"
+hideall "--sync--"
+
+0 "--Reset--" GameLog { code: "001D", line: "You bid farewell to the striking dummy.*?" } window 0,10000 jump 0
+
+# two examples with different quoting which should both be supported
+0 "--sync--" GameLog { line: 'testNetRegexTimeline' } window 100000,100000
+0 "--sync--" GameLog { "line": "testNetRegexTimeline" } window 100000,100000
+
+0 "--sync--" GameLog { code: "0039", line: "Engage!.*?" } window 100000,100000
+0 "--sync--" GameLog { code: "001D", line: "You bow courteously to the striking dummy.*?" } window 0,1
+3 "Almagest"
+6 "Angry Dummy"
+10 "Long Castbar" duration 10
+15 "Final Sting"
+18 "Pentacle Sac (DPS)"
+25 "Super Tankbuster" GameLog { code: "0038", line: "test sync1.*?" } window 30,30
+30 "Dummy Stands Still"
+40 "Death"
+
+50 "--sync--" GameLog { code: "0038", line: "test sync2.*?" } window 100,1 forcejump "loop"
+
+# Loop test!
+100 label "loop"
+102 "Two"
+103 label "three"
+103 "Three"
+104 "Four"
+106 "Six"
+110 "Ten" #duration 100
+115 "Fifteen"
+118 "Force Jump Three" GameLog { code: "0038", line: "test sync3.*?" } window 10,10 forcejump "three"
+120 "Invisible" GameLog { code: "0038", line: "test sync4.*?" } forcejump 1000
+"#);
+
+        insta::assert_debug_snapshot!("Full Timeline", vec);
     }
 }
