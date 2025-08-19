@@ -1,0 +1,50 @@
+---
+source: src/tokenizer.rs
+expression: vec
+---
+[
+    Token {
+        kind: Keyword,
+        value: Some(
+            "sync",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 1,
+                offset: 0,
+            },
+            end: Position {
+                line: 1,
+                column: 5,
+                offset: 4,
+            },
+        },
+        range: (
+            0,
+            4,
+        ),
+    },
+    Token {
+        kind: RegularExpression,
+        value: Some(
+            "regexp",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 6,
+                offset: 5,
+            },
+            end: Position {
+                line: 1,
+                column: 14,
+                offset: 13,
+            },
+        },
+        range: (
+            5,
+            13,
+        ),
+    },
+]

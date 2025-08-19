@@ -277,6 +277,8 @@ impl<'a> Tokenizer<'a> {
             self.consume_string_literal()
         } else if char == b'#' {
             self.consume_comment()
+        } else if char == b'/' {
+            self.consume_regular_expression()
         } else {
             self.consume_unknown()
         };
@@ -431,6 +433,51 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    fn consume_regular_expression(&mut self) -> Token {
+        let start = self.position();
+        let mut end = start.clone();
+        let mut value = String::new();
+
+        if self.input.as_bytes()[self.position] != b'/' {
+            return self.consume_unknown();
+        }
+
+        self.position += 1; // Consume the opening '/'
+        self.column += 1;
+
+        let mut escaped = false;
+        while self.position < self.input.len() {
+            let current_char = self.input.as_bytes()[self.position] as char;
+
+            if escaped {
+            value.push(current_char);
+            escaped = false;
+            } else if current_char == '\\' {
+            value.push(current_char);
+            escaped = true;
+            } else if current_char == '/' {
+            // Closing slash found
+            self.position += 1;
+            self.column += 1;
+            end = self.position();
+            break;
+            } else {
+            value.push(current_char);
+            }
+
+            self.position += 1;
+            self.column += 1;
+            end = self.position();
+        }
+
+        Token {
+            kind: TokenKind::RegularExpression,
+            value: Some(value),
+            loc: SourceLocation::new(start.clone(), end.clone()),
+            range: (start.offset, end.offset),
+        }
+    }
+
     fn consume_comment(&mut self) -> Token {
         let start = self.position();
         let mut end = start.clone();
@@ -524,22 +571,12 @@ mod tests {
         insta::assert_debug_snapshot!("Timeline Entry with Comment", vec);
     }
 
-//   #[test]
-//   fn test_tokenizer_sync_command_with_regex() {
-//     let input = "sync /regexp/";
-//     let mut tokens = Tokenizer::new(input.to_string());
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::Keyword);
-//     assert_eq!(next.value, Some("sync".to_string()));
-//     assert_eq!(next.start, 0);
-//     assert_eq!(next.end, 4);
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::RegularExpression);
-//     assert_eq!(next.value, Some("regexp".to_string()));
-//     assert_eq!(next.raw, "/regexp/");
-//     assert_eq!(next.start, 5);
-//     assert_eq!(next.end, 13);
-//   }
+    #[test]
+    fn test_tokenizer_sync_command_with_regex() {
+        let vec = all_tokens("sync /regexp/");
+
+        insta::assert_debug_snapshot!("Sync Command with Regex", vec);
+    }
 
 //   #[test]
 //   fn test_tokenizer_sync_netsync_command() {
