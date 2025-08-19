@@ -1,0 +1,204 @@
+---
+source: src/tokenizer.rs
+expression: v
+---
+[
+    Token {
+        kind: NumericLiteral,
+        value: Some(
+            "0",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 1,
+                offset: 0,
+            },
+            end: Position {
+                line: 1,
+                column: 2,
+                offset: 1,
+            },
+        },
+        range: (
+            0,
+            1,
+        ),
+    },
+    Token {
+        kind: NumericLiteral,
+        value: Some(
+            "0",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 1,
+                offset: 0,
+            },
+            end: Position {
+                line: 1,
+                column: 2,
+                offset: 1,
+            },
+        },
+        range: (
+            0,
+            1,
+        ),
+    },
+    Token {
+        kind: NumericLiteral,
+        value: Some(
+            "0",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 1,
+                offset: 0,
+            },
+            end: Position {
+                line: 1,
+                column: 2,
+                offset: 1,
+            },
+        },
+        range: (
+            0,
+            1,
+        ),
+    },
+    Token {
+        kind: StringLiteral,
+        value: Some(
+            "test",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 3,
+                offset: 2,
+            },
+            end: Position {
+                line: 1,
+                column: 9,
+                offset: 8,
+            },
+        },
+        range: (
+            2,
+            8,
+        ),
+    },
+    Token {
+        kind: StringLiteral,
+        value: Some(
+            "test",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 3,
+                offset: 2,
+            },
+            end: Position {
+                line: 1,
+                column: 9,
+                offset: 8,
+            },
+        },
+        range: (
+            2,
+            8,
+        ),
+    },
+    Token {
+        kind: Keyword,
+        value: Some(
+            "sync",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 10,
+                offset: 9,
+            },
+            end: Position {
+                line: 1,
+                column: 14,
+                offset: 13,
+            },
+        },
+        range: (
+            9,
+            13,
+        ),
+    },
+    Token {
+        kind: Keyword,
+        value: Some(
+            "sync",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 10,
+                offset: 9,
+            },
+            end: Position {
+                line: 1,
+                column: 14,
+                offset: 13,
+            },
+        },
+        range: (
+            9,
+            13,
+        ),
+    },
+    Token {
+        kind: RegularExpression,
+        value: Some(
+            "regex",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 15,
+                offset: 14,
+            },
+            end: Position {
+                line: 1,
+                column: 22,
+                offset: 21,
+            },
+        },
+        range: (
+            14,
+            21,
+        ),
+    },
+    Token {
+        kind: RegularExpression,
+        value: Some(
+            "regex",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 15,
+                offset: 14,
+            },
+            end: Position {
+                line: 1,
+                column: 22,
+                offset: 21,
+            },
+        },
+        range: (
+            14,
+            21,
+        ),
+    },
+]

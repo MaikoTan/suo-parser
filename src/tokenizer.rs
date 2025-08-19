@@ -1,7 +1,7 @@
 use super::utils::location::{Position, SourceLocation};
 use super::utils::log_types::NetSyncLogType;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     /// Including keywords, NetSyncLogType variants
     Keyword,
@@ -56,7 +56,7 @@ pub struct Tokenizer<'a> {
     line: u32,
     column: u32,
 
-    current_token: Option<Token>,
+    pub current_token: Option<Token>,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -74,16 +74,20 @@ impl<'a> Tokenizer<'a> {
         Position::new(self.line, self.column, self.position)
     }
 
-    pub fn peek_token(&mut self) -> Token {
+    pub fn peek_token(&mut self) -> Option<Token> {
         if let Some(token) = &self.current_token {
-            return token.clone();
+            return Some(token.clone());
         }
 
         self.current_token = self.next_token();
-        self.current_token.clone().unwrap()
+        self.current_token.clone()
     }
 
     pub fn next_token(&mut self) -> Option<Token> {
+        if let Some(token) = self.current_token.take() {
+            return Some(token);
+        }
+
         self.skip_whitespace();
 
         if self.position >= self.input.len() {
@@ -536,5 +540,30 @@ hideall "--sync--"
 "#);
 
         insta::assert_debug_snapshot!("Full Timeline", vec);
+    }
+
+    #[test]
+    fn test_tokenizer_peek_token() {
+        let mut tokenizer = Tokenizer::new("0 \"test\" sync /regex/");
+        let v = {
+            let mut vec = Vec::new();
+            // NumericLiteral
+            vec.push(tokenizer.peek_token().unwrap());
+            vec.push(tokenizer.peek_token().unwrap());
+            vec.push(tokenizer.next_token().unwrap());
+            // StringLiteral
+            vec.push(tokenizer.peek_token().unwrap());
+            vec.push(tokenizer.next_token().unwrap());
+            // Keyword
+            vec.push(tokenizer.peek_token().unwrap());
+            vec.push(tokenizer.next_token().unwrap());
+            // RegexLiteral
+            vec.push(tokenizer.peek_token().unwrap());
+            vec.push(tokenizer.next_token().unwrap());
+
+            vec
+        };
+
+        insta::assert_debug_snapshot!("Peek Tokens", v);
     }
 }
