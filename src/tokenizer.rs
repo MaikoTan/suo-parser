@@ -8,6 +8,9 @@ pub enum TokenKind {
     NumericLiteral,
     RegularExpression,
     Punctuator,
+    Colon,
+    Brace,
+    Identifier,
     Comment,
     Whitespace,
     /// Unknown token
@@ -21,21 +24,6 @@ pub struct Token {
     pub loc: SourceLocation,
     pub range: (usize, usize),
 }
-
-// const keywords = [
-//   "sync",
-//   "window",
-//   "jump",
-//   "duration",
-//   "hideall",
-//   "alertall",
-//   "before",
-//   "sound",
-//   "define",
-//   "infotext",
-//   "alerttext",
-//   "alarmtext",
-// ] as const;
 
 pub enum Keyword {
     Sync,
@@ -51,180 +39,6 @@ pub enum Keyword {
     AlertText,
     AlarmText,
 }
-
-// export type Keyword = typeof keywords[number];
-
-// export const Spec: [
-//   regex: RegExp,
-//   tokenType: Token["type"],
-//   transformer: (code: string, matches: RegExpExecArray) => string,
-// ][] = [
-//   [/^\s+/, "Whitespace", (_code, matches) => matches[0]],
-//   [/^#(.*)/, "Comment", (_code, matches) => matches[1]],
-//   [/^(,|:)/, "Punctuator", (_code, matches) => matches[0]],
-//   [/^(\{|\})/, "Brace", (_code, matches) => matches[0]],
-//   [/^([1-9]\d*(?:\.\d+)?|0?\.\d+|0)/, "NumericLiteral", (_code, matches) => matches[0]],
-//   [
-//     /^(".*?(?<!\\)")|('.*?(?<!\\)')/,
-//     "StringLiteral",
-//     (_code, matches) => {
-//       return (
-//         matches[0]
-//           // omit quotes
-//           .substring(1, matches[0].length - 1)
-//           // escaped characters
-//           // TODO: make a correspond map?
-//           .replace('\\"', '"')
-//           .replace("\\'", "'")
-//           .replace("\\n", "\n")
-//           .replace("\\t", "\t")
-//       );
-//     },
-//   ],
-//   [
-//     /^\/((?![*+?])(?:[^\r\n\[/\\]|\\.|\[(?:[^\r\n\]\\]|\\.)*\])+)\//,
-//     "RegularExpression",
-//     (_code, matches) => matches[1],
-//   ],
-//   [new RegExp("^(" + [...netSyncLogType, ...keywords].join("|") + ")\\b"), "Keyword", (_code, matches) => matches[0]],
-//   [/^\w+/, "Identifier", (_code, matches) => matches[0]],
-// ];
-
-// export class Tokenizer {
-//   sourceCode: string;
-//   line: number;
-//   column: number;
-//   index: number;
-
-//   /**
-//    * cache the next token
-//    */
-//   private currentToken: Token | null;
-
-//   constructor(sourceCode: string) {
-//     sourceCode = sourceCode
-//       // strip any UTF-8 BOM off of the start of `str`, if it exists.
-//       .replace(/^\uFEFF/, "")
-//       // replace all line terminators with `\n`
-//       .replace(/\r\n|\r/g, "\n");
-//     this.sourceCode = sourceCode;
-//     this.line = 1;
-//     this.column = 0;
-//     this.index = 0;
-
-//     this.currentToken = null;
-//   }
-
-//   peekToken(): Token {
-//     if (this.currentToken) {
-//       return this.currentToken;
-//     }
-
-//     this.currentToken = this.nextToken();
-//     return this.currentToken;
-//   }
-
-//   nextToken(): Token {
-//     const token = this.nextTokenWithWhiteSpaces();
-//     if (token.type === "Whitespace") {
-//       return this.nextToken();
-//     }
-//     return token;
-//   }
-
-//   nextTokenWithWhiteSpaces(): Token {
-//     if (this.currentToken) {
-//       const token = this.currentToken;
-//       this.currentToken = null;
-//       return token;
-//     }
-
-//     if (this.index >= this.sourceCode.length) {
-//       return {
-//         type: "EOF",
-//         start: this.index,
-//         end: this.index,
-//         loc: new SourceLocation(new Position(this.line, this.column), new Position(this.line, this.column)),
-//         raw: "",
-//       };
-//     }
-
-//     for (const [regex, kind, transformer] of Spec) {
-//       const sourceCode = this.sourceCode.substring(this.index);
-//       const matches = regex.exec(sourceCode);
-
-//       if (!matches) {
-//         continue;
-//       }
-
-//       const newEnd = {
-//         // As benchmark says, the split method is the fastest (faster than for-loop a lot)
-//         // see http://jsbench.github.io/#4cc806b4507ae063efc81900cdfb9b02
-//         line: this.line + (matches[0].split("\n").length - 1),
-//         column: matches[0].includes("\n")
-//           ? matches[0].split("\n").pop()?.length ?? matches[0].length
-//           : this.column + matches[0].length,
-//       };
-
-//       const loc = {
-//         raw: matches[0],
-//         start: this.index,
-//         end: this.index + matches[0].length,
-//         loc: new SourceLocation(new Position(this.line, this.column), newEnd),
-//       };
-
-//       this.index += matches[0].length;
-//       this.line = newEnd.line;
-//       this.column = newEnd.column;
-
-//       return {
-//         ...loc,
-//         type: kind,
-//         value: transformer(sourceCode, matches),
-//       };
-//     }
-//     return {
-//       type: "Unknown",
-//       value: "",
-//       start: this.index,
-//       end: this.index,
-//       loc: new SourceLocation(new Position(this.line, this.column), new Position(this.line, this.column)),
-//       raw: this.sourceCode.substring(this.index),
-//     };
-//   }
-
-//   hasNextToken(): boolean {
-//     return (this.currentToken !== null && this.currentToken.type !== "EOF") || this.index < this.sourceCode.length;
-//   }
-
-//   /**
-//    * This is a helper function to get the next character without consuming it.
-//    */
-//   peek(next?: number): string {
-//     if (next) {
-//       return this.sourceCode.charAt(this.index + next);
-//     }
-//     return this.sourceCode.charAt(this.index);
-//   }
-
-//   /**
-//    * This function would move the cursor forward
-//    */
-//   next(): string {
-//     return this.sourceCode.charAt(++this.index);
-//   }
-
-//   get allTokens(): Token[] {
-//     if (this.line !== 1 || this.column !== 0 || this.index !== 0) {
-//       throw new Error("Tokenizer is not at the beginning of the source code");
-//     }
-//     const tokens: Token[] = [];
-//     while (this.hasNextToken()) {
-//       tokens.push(this.nextTokenWithWhiteSpaces());
-//     }
-//     return tokens;
-//   }
-// }
 
 pub struct Tokenizer<'a> {
     input: &'a str,
@@ -279,6 +93,24 @@ impl<'a> Tokenizer<'a> {
             self.consume_comment()
         } else if char == b'/' {
             self.consume_regular_expression()
+        } else if char == b':' {
+            self.position += 1;
+            self.column += 1;
+            Token {
+                kind: TokenKind::Colon,
+                value: Some(":".to_string()),
+                loc: SourceLocation::new(start.clone(), self.position()),
+                range: (start.offset, self.position),
+            }
+        } else if char == b'{' || char == b'}' {
+            self.position += 1;
+            self.column += 1;
+            Token {
+                kind: TokenKind::Brace,
+                value: Some(char as char).map(|c| c.to_string()),
+                loc: SourceLocation::new(start.clone(), self.position()),
+                range: (start.offset, self.position),
+            }
         } else if char == b',' {
             self.position += 1;
             self.column += 1;
@@ -349,18 +181,38 @@ impl<'a> Tokenizer<'a> {
             }
         }
 
-        // If no keyword matches, return an unknown token
-        let start = self.position();
-        self.position += 1;
-        self.column += 1;
+        // If no keyword matches, try parsing it as NetSyncLogType
+        for key in NetSyncLogType::all_keys() {
+            if self.input[self.position..].starts_with(&key) {
+                let start = self.position();
+                self.position += key.len();
+                self.column += key.len() as u32;
 
-        let end = self.position();
+                let end = self.position();
+
+                return Token {
+                    kind: TokenKind::Keyword,
+                    value: Some(key),
+                    loc: SourceLocation::new(start.clone(), end.clone()),
+                    range: (start.offset, end.offset),
+                };
+            }
+        }
+
+        // Otherwise, return an identifier token
+        let start = self.position();
+        while self.position < self.input.len()
+            && self.input[self.position..].starts_with(|c: char| c.is_ascii_alphanumeric() || c == '_')
+        {
+            self.position += 1;
+            self.column += 1;
+        }
 
         Token {
-            kind: TokenKind::Unknown,
-            value: None,
-            loc: SourceLocation::new(start.clone(), end.clone()),
-            range: (start.offset, end.offset),
+            kind: TokenKind::Identifier,
+            value: Some(self.input[start.offset..self.position].to_string()),
+            loc: SourceLocation::new(start.clone(), self.position()),
+            range: (start.offset, self.position().offset),
         }
     }
 
@@ -597,12 +449,12 @@ mod tests {
         insta::assert_debug_snapshot!("Sync Command with Regex", vec);
     }
 
-    // #[test]
-    // fn test_tokenizer_sync_netsync_command() {
-    //     let vec= all_tokens("Ability { id: \"1000\", name: \"name\" }");
+    #[test]
+    fn test_tokenizer_sync_netsync_command() {
+        let vec = all_tokens("Ability { id: \"1000\", name: \"name\" }");
 
-    //     insta::assert_debug_snapshot!("Sync Netsync Command", vec);
-    // }
+        insta::assert_debug_snapshot!("Sync Netsync Command", vec);
+    }
 
     #[test]
     fn test_tokenizer_window_command() {

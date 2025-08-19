@@ -1,4 +1,5 @@
 /// https://github.com/OverlayPlugin/cactbot/blob/main/docs/LogGuide.md
+#[derive(Debug)]
 pub enum NetSyncLogType {
   /// 0x00 LogLine
   ///
@@ -264,4 +265,39 @@ pub enum NetSyncLogType {
   ///
   /// see https://github.com/OverlayPlugin/cactbot/blob/main/docs/LogGuide.md#line-274-0x112-actorcontrolselfextra
   ActorControlSelfExtra = 0x112,
+}
+
+impl NetSyncLogType {
+  /// Returns the key name for the enum variant.
+  pub fn key_name(&self) -> String {
+    format!("{:?}", self)
+  }
+
+  /// Returns all keys as a vector of strings.
+  pub fn all_keys() -> Vec<String> {
+    vec![
+      Self::PacketDump.key_name(),
+      Self::Version.key_name(),
+      Self::Error.key_name(),
+      Self::LineRegistration.key_name(),
+      Self::MapEffect.key_name(),
+      Self::FateDirector.key_name(),
+      Self::CEDirector.key_name(),
+      Self::InCombat.key_name(),
+      Self::CombatantMemory.key_name(),
+      Self::RSVData.key_name(),
+      Self::StartsUsingExtra.key_name(),
+      Self::AbilityExtra.key_name(),
+      Self::ContentFinderSettings.key_name(),
+      Self::NpcYell.key_name(),
+      Self::BattleTalk2.key_name(),
+      Self::Countdown.key_name(),
+      Self::CountdownCancel.key_name(),
+      Self::ActorMove.key_name(),
+      Self::ActorSetPos.key_name(),
+      Self::SpawnNpcExtra.key_name(),
+      Self::ActorControlExtra.key_name(),
+      Self::ActorControlSelfExtra.key_name(),
+    ]
+  }
 }
