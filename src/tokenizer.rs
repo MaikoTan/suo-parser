@@ -275,6 +275,8 @@ impl<'a> Tokenizer<'a> {
             self.consume_numeric_literal()
         } else if char == b'"' || char == b'\'' {
             self.consume_string_literal()
+        } else if char == b'#' {
+            self.consume_comment()
         } else {
             self.consume_unknown()
         };
@@ -429,6 +431,32 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    fn consume_comment(&mut self) -> Token {
+        let start = self.position();
+        let mut end = start.clone();
+        let mut value = String::new();
+
+        while self.position < self.input.len() {
+            let current_char = self.input.as_bytes()[self.position] as char;
+
+            if current_char == '\n' {
+                break;
+            } else {
+                value.push(current_char);
+                self.position += 1;
+                self.column += 1;
+                end = self.position();
+            }
+        }
+
+        Token {
+            kind: TokenKind::Comment,
+            value: Some(value),
+            loc: SourceLocation::new(start.clone(), end.clone()),
+            range: (start.offset, end.offset),
+        }
+    }
+
     fn consume_unknown(&mut self) -> Token {
         let start = self.position();
         let current_char = self.input.as_bytes()[self.position] as char;
@@ -489,21 +517,12 @@ mod tests {
         insta::assert_debug_snapshot!("String Mixup", vec);
     }
 
-//   #[test]
-//   fn test_tokenizer_timeline_entry_with_comment() {
-//     let input = "10.0 \"name\" # comment";
-//     let mut tokens = Tokenizer::new(input.to_string());
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::NumericLiteral);
-//     assert_eq!(next.value, Some("10.0".to_string()));
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::StringLiteral);
-//     assert_eq!(next.value, Some("name".to_string()));
-//     let next = tokens.next_token(); // comment
-//     assert_eq!(next.kind, TokenKind::Comment);
-//     assert_eq!(next.value, Some(" comment".to_string()));
-//     assert_eq!(next.raw, "# comment");
-//   }
+    #[test]
+    fn test_tokenizer_timeline_entry_with_comment() {
+        let vec= all_tokens("10.0 \"name\" # comment");
+
+        insta::assert_debug_snapshot!("Timeline Entry with Comment", vec);
+    }
 
 //   #[test]
 //   fn test_tokenizer_sync_command_with_regex() {
