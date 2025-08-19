@@ -334,6 +334,19 @@ mod tests {
   use super::{Tokenizer, TokenType};
 
   #[test]
+  fn test_tokenizer_string() {
+    let input = "\"name\"";
+    let mut tokens = Tokenizer::new(input.to_string());
+    let next = tokens.next_token();
+    assert_eq!(next.type_, TokenType::StringLiteral);
+    assert_eq!(next.value, Some("name".to_string()));
+    assert_eq!(next.start, 0);
+    assert_eq!(next.end, 6);
+    let next = tokens.next_token(); // EOF
+    assert_eq!(next.type_, TokenType::EOF);
+  }
+
+  #[test]
   fn test_tokenizer_simple_entry() {
     let input = "100 \"name\"";
     let mut tokens = Tokenizer::new(input.to_string());
