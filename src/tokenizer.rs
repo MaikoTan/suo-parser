@@ -601,22 +601,10 @@ mod tests {
         insta::assert_debug_snapshot!("Window Command", vec);
     }
 
-//   #[test]
-//   fn test_tokenizer_jump_command() {
-//     let input = "jump 10.0\njump 10";
-//     let mut tokens = Tokenizer::new(input.to_string());
-//     let token_types: Vec<TokenKind> = tokens.all_tokens().map(|token| token.kind).collect();
-//     assert_eq!(
-//       token_types,
-//       vec![
-//         TokenKind::Keyword,
-//         TokenKind::Whitespace,
-//         TokenKind::NumericLiteral,
-//         TokenKind::Whitespace,
-//         TokenKind::Keyword,
-//         TokenKind::Whitespace,
-//         TokenKind::NumericLiteral,
-//       ]
-//     );
-//   }
+    #[test]
+    fn test_tokenizer_jump_command() {
+        let vec = all_tokens("jump 10.0\njump 10");
+
+        insta::assert_debug_snapshot!("Jump Command", vec);
+    }
 }
