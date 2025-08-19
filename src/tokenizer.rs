@@ -465,24 +465,22 @@ mod tests {
     fn test_tokenizer_string() {
         let vec = all_tokens("\"name\"");
 
-        insta::assert_debug_snapshot!(vec);
+        insta::assert_debug_snapshot!("Quoted String", vec);
     }
 
     #[test]
     fn test_tokenizer_simple_entry() {
         let vec = all_tokens("100 \"name\"");
 
-        insta::assert_debug_snapshot!(vec);
+        insta::assert_debug_snapshot!("Simple Entry", vec);
     }
 
-//   #[test]
-//   fn test_tokenizer_string_with_escape() {
-//     let input = "\"\\\"\"";
-//     let mut tokens = Tokenizer::new(input.to_string());
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::StringLiteral);
-//     assert_eq!(next.value, Some("\"".to_string()));
-//   }
+    #[test]
+    fn test_tokenizer_string_with_escape() {
+        let vec = all_tokens("\"\\\"\"");
+
+        insta::assert_debug_snapshot!("Escaped String", vec);
+    }
 
 //   #[test]
 //   fn test_tokenizer_string_mixup() {
