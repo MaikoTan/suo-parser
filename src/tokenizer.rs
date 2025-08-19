@@ -273,7 +273,7 @@ impl<'a> Tokenizer<'a> {
             self.consume_keyword()
         } else if char.is_ascii_digit() {
             self.consume_numeric_literal()
-        } else if char == b'"' {
+        } else if char == b'"' || char == b'\'' {
             self.consume_string_literal()
         } else {
             self.consume_unknown()
@@ -482,17 +482,12 @@ mod tests {
         insta::assert_debug_snapshot!("Escaped String", vec);
     }
 
-//   #[test]
-//   fn test_tokenizer_string_mixup() {
-//     let input = "\"I'm\" 'str\"ing'";
-//     let mut tokens = Tokenizer::new(input.to_string());
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::StringLiteral);
-//     assert_eq!(next.value, Some("I'm".to_string()));
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::StringLiteral);
-//     assert_eq!(next.value, Some("str\"ing".to_string()));
-//   }
+    #[test]
+    fn test_tokenizer_string_mixup() {
+        let vec = all_tokens("\"I'm\" 'str\"ing'");
+
+        insta::assert_debug_snapshot!("String Mixup", vec);
+    }
 
 //   #[test]
 //   fn test_tokenizer_timeline_entry_with_comment() {
