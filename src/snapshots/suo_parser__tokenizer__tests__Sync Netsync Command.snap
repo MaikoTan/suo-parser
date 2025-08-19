@@ -4,7 +4,7 @@ expression: vec
 ---
 [
     Token {
-        kind: Identifier,
+        kind: Keyword,
         value: Some(
             "Ability",
         ),

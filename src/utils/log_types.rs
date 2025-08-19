@@ -151,6 +151,12 @@ pub enum NetSyncLogType {
     /// see https://github.com/OverlayPlugin/cactbot/blob/main/docs/LogGuide.md#line-42-0x2a-statuslist3
     StatusList3 = 0x2A,
 
+    /// 0xF9 ParserInfo
+    ParserInfo = 0xF9,
+
+    /// 0xFA ProcessInfo
+    ProcessInfo = 0xFA,
+
     /// 0xFB Debug
     ///
     /// see https://github.com/OverlayPlugin/cactbot/blob/main/docs/LogGuide.md#line-251-0xfb-debug
@@ -275,37 +281,41 @@ impl NetSyncLogType {
 
     /// Returns all keys as a vector of strings.
     pub fn all_keys() -> Vec<String> {
+        // NOTE: There are some keys that are not directly mapped to enum variants.
+        // See: https://github.com/OverlayPlugin/cactbot/blob/main/resources/netlog_defs.ts
         vec![
-            Self::LogLine.key_name(),
+            "GameLog".to_string(), // Self::LogLine.key_name(),
             Self::ChangeZone.key_name(),
-            Self::ChangePrimaryPlayer.key_name(),
-            Self::AddCombatant.key_name(),
-            Self::RemoveCombatant.key_name(),
+            "ChangePlayer".to_string(), // Self::ChangePrimaryPlayer.key_name(),
+            "AddedCombatant".to_string(), // Self::AddCombatant.key_name(),
+            "RemovedCombatant".to_string(), // Self::RemoveCombatant.key_name(),
             Self::PartyList.key_name(),
             Self::PlayerStats.key_name(),
-            Self::NetworkStartsCasting.key_name(),
-            Self::NetworkAbility.key_name(),
+            "StartsUsing".to_string(), // Self::NetworkStartsCasting.key_name(),
+            "Ability".to_string(), // Self::NetworkAbility.key_name(),
             Self::NetworkAOEAbility.key_name(),
             Self::NetworkCancelAbility.key_name(),
             Self::NetworkDoT.key_name(),
-            Self::NetworkDeath.key_name(),
-            Self::NetworkBuff.key_name(),
-            Self::NetworkTargetIcon.key_name(),
+            "WasDefeated".to_string(), // Self::NetworkDeath.key_name(),
+            "GainsEffect".to_string(), // Self::NetworkBuff.key_name(),
+            "HeadMarker".to_string(), // Self::NetworkTargetIcon.key_name(),
             Self::NetworkRaidMarker.key_name(),
             Self::NetworkTargetMarker.key_name(),
-            Self::NetworkBuffRemove.key_name(),
+            "LosesEffect".to_string(), // Self::NetworkBuffRemove.key_name(),
             Self::NetworkGauge.key_name(),
             Self::NetworkWorld.key_name(),
-            Self::Network6D.key_name(),
-            Self::NetworkNameToggle.key_name(),
-            Self::NetworkTether.key_name(),
+            "ActorControl".to_string(), // Self::Network6D.key_name(),
+            "NameToggle".to_string(), // Self::NetworkNameToggle.key_name(),
+            "Tether".to_string(), // Self::NetworkTether.key_name(),
             Self::LimitBreak.key_name(),
-            Self::NetworkActionSync.key_name(),
-            Self::NetworkStatusEffects.key_name(),
+            "NetworkEffectResult".to_string(), // Self::NetworkActionSync.key_name(),
+            "StatusEffect".to_string(), // Self::NetworkStatusEffects.key_name(),
             Self::NetworkUpdateHP.key_name(),
             Self::Map.key_name(),
             Self::SystemLogMessage.key_name(),
             Self::StatusList3.key_name(),
+            Self::ParserInfo.key_name(),
+            Self::ProcessInfo.key_name(),
             Self::Debug.key_name(),
             Self::PacketDump.key_name(),
             Self::Version.key_name(),
