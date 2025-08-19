@@ -279,7 +279,7 @@ impl<'a> Tokenizer<'a> {
             self.consume_comment()
         } else if char == b'/' {
             self.consume_regular_expression()
-        } else if char == b',' {    
+        } else if char == b',' {
             self.position += 1;
             self.column += 1;
             Token {
@@ -318,8 +318,18 @@ impl<'a> Tokenizer<'a> {
 
     fn consume_keyword(&mut self) -> Token {
         let keywords = [
-            "sync", "window", "jump", "duration", "hideall", "alertall", "before",
-            "sound", "define", "infotext", "alerttext", "alarmtext",
+            "sync",
+            "window",
+            "jump",
+            "duration",
+            "hideall",
+            "alertall",
+            "before",
+            "sound",
+            "define",
+            "infotext",
+            "alerttext",
+            "alarmtext",
         ];
 
         for keyword in keywords.iter() {
@@ -459,19 +469,19 @@ impl<'a> Tokenizer<'a> {
             let current_char = self.input.as_bytes()[self.position] as char;
 
             if escaped {
-            value.push(current_char);
-            escaped = false;
+                value.push(current_char);
+                escaped = false;
             } else if current_char == '\\' {
-            value.push(current_char);
-            escaped = true;
+                value.push(current_char);
+                escaped = true;
             } else if current_char == '/' {
-            // Closing slash found
-            self.position += 1;
-            self.column += 1;
-            end = self.position();
-            break;
+                // Closing slash found
+                self.position += 1;
+                self.column += 1;
+                end = self.position();
+                break;
             } else {
-            value.push(current_char);
+                value.push(current_char);
             }
 
             self.position += 1;
@@ -575,7 +585,7 @@ mod tests {
 
     #[test]
     fn test_tokenizer_timeline_entry_with_comment() {
-        let vec= all_tokens("10.0 \"name\" # comment");
+        let vec = all_tokens("10.0 \"name\" # comment");
 
         insta::assert_debug_snapshot!("Timeline Entry with Comment", vec);
     }
