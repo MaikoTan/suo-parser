@@ -1,20 +1,13 @@
-use std::fmt::{Display, Error, Formatter};
-
 #[derive(Debug, Clone)]
 pub struct Position {
   pub line: u32,
   pub column: u32,
+  pub offset: usize,
 }
 
 impl Position {
-  pub fn new(line: u32, column: u32) -> Self {
-    Self { line, column }
-  }
-}
-
-impl Display for Position {
-  fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-    write!(f, "{}:{}", self.line, self.column)
+  pub fn new(line: u32, column: u32, offset: usize) -> Self {
+    Self { line, column, offset }
   }
 }
 
@@ -27,30 +20,5 @@ pub struct SourceLocation {
 impl SourceLocation {
   pub fn new(start: Position, end: Position) -> Self {
     Self { start, end }
-  }
-}
-
-impl Display for SourceLocation {
-  fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-    write!(f, "{},{}", self.start, self.end)
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn test_position() {
-    let pos = Position::new(1, 2);
-    assert_eq!(pos.to_string(), "1:2");
-  }
-
-  #[test]
-  fn test_source_location() {
-    let start = Position::new(1, 2);
-    let end = Position::new(3, 4);
-    let loc = SourceLocation::new(start, end);
-    assert_eq!(loc.to_string(), "1:2,3:4");
   }
 }
