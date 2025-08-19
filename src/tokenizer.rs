@@ -279,6 +279,15 @@ impl<'a> Tokenizer<'a> {
             self.consume_comment()
         } else if char == b'/' {
             self.consume_regular_expression()
+        } else if char == b',' {    
+            self.position += 1;
+            self.column += 1;
+            Token {
+                kind: TokenKind::Punctuator,
+                value: Some(",".to_string()),
+                loc: SourceLocation::new(start.clone(), self.position()),
+                range: (start.offset, self.position),
+            }
         } else {
             self.consume_unknown()
         };
@@ -578,59 +587,19 @@ mod tests {
         insta::assert_debug_snapshot!("Sync Command with Regex", vec);
     }
 
-//   #[test]
-//   fn test_tokenizer_sync_netsync_command() {
-//     let input = "Ability { id: \"1000\", name: \"name\" }";
-//     let mut tokens = Tokenizer::new(input.to_string());
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::Keyword);
-//     assert_eq!(next.value, Some("Ability".to_string()));
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::Brace);
-//     assert_eq!(next.value, Some("{".to_string()));
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::Identifier);
-//     assert_eq!(next.value, Some("id".to_string()));
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::Punctuator);
-//     assert_eq!(next.value, Some(":".to_string()));
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::StringLiteral);
-//     assert_eq!(next.value, Some("1000".to_string()));
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::Punctuator);
-//     assert_eq!(next.value, Some(",".to_string()));
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::Identifier);
-//     assert_eq!(next.value, Some("name".to_string()));
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::Punctuator);
-//     assert_eq!(next.value, Some(":".to_string()));
-//     let next = tokens.next_token();
-//     assert_eq!(next.kind, TokenKind::StringLiteral);
-//     assert_eq!(next.value, Some("name".to_string()));
-//   }
+    // #[test]
+    // fn test_tokenizer_sync_netsync_command() {
+    //     let vec= all_tokens("Ability { id: \"1000\", name: \"name\" }");
 
-//   #[test]
-//   fn test_tokenizer_window_command() {
-//     let input = "window 10.0\nwindow 1,1";
-//     let mut tokens = Tokenizer::new(input.to_string());
-//     let token_types: Vec<_> = tokens.all_tokens().map(|token| token.kind).collect();
-//     assert_eq!(
-//       token_types,
-//       vec![
-//         TokenKind::Keyword,
-//         TokenKind::Whitespace,
-//         TokenKind::NumericLiteral,
-//         TokenKind::Whitespace,
-//         TokenKind::Keyword,
-//         TokenKind::Whitespace,
-//         TokenKind::NumericLiteral,
-//         TokenKind::Punctuator,
-//         TokenKind::NumericLiteral,
-//       ]
-//     );
-//   }
+    //     insta::assert_debug_snapshot!("Sync Netsync Command", vec);
+    // }
+
+    #[test]
+    fn test_tokenizer_window_command() {
+        let vec = all_tokens("window 10.0\nwindow 1,1.0");
+
+        insta::assert_debug_snapshot!("Window Command", vec);
+    }
 
 //   #[test]
 //   fn test_tokenizer_jump_command() {
