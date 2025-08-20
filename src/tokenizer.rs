@@ -1,5 +1,5 @@
-use std::io::{BufRead, BufReader, Cursor, Read};
 use std::fs::File;
+use std::io::{BufRead, BufReader, Cursor, Read};
 
 use super::utils::location::{Position, SourceLocation};
 use super::utils::log_types::NetSyncLogType;
@@ -286,7 +286,7 @@ impl<R: Read> Tokenizer<R> {
                 value: Some(name),
                 loc: SourceLocation::new(start.clone(), self.position()),
                 range: (start.offset, self.position().offset),
-            }
+            };
         }
 
         panic!("Unexpected end of input while consuming keyword or identifier");
@@ -486,9 +486,12 @@ impl<R: Read> Tokenizer<R> {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io::{BufRead, Cursor}};
     use super::{Token, Tokenizer};
     use insta;
+    use std::{
+        fs::File,
+        io::{BufRead, Cursor},
+    };
 
     #[test]
     fn test_tokenizer_read_char() {
@@ -597,8 +600,7 @@ mod tests {
     fn test_tokenizer_full_timeline() {
         // Taken from https://github.com/OverlayPlugin/cactbot/blob/main/ui/raidboss/data/00-misc/test.txt
         let vec = {
-            let file = File::open("./src/tests/data/test.txt")
-                .expect("Failed to open test file");
+            let file = File::open("./src/tests/data/test.txt").expect("Failed to open test file");
             let mut tokenizer: Tokenizer<_> = file.into();
 
             let mut vec = Vec::new();
