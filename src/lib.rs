@@ -1,11 +1,11 @@
 #![feature(bufreader_peek)]
 #![feature(buf_read_has_data_left)]
 
-mod generator;
-mod parser;
-mod tokenizer;
-mod types;
-mod utils;
+pub mod generator;
+pub mod parser;
+pub mod tokenizer;
+pub mod types;
+pub mod utils;
 
 // export function parse(code: string, callback: (err?: Error, program?: Program) => void): void {
 //   const tokenizer = new Tokenizer(code);

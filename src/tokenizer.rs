@@ -288,15 +288,6 @@ impl<R: Read> Tokenizer<R> {
                 range: (start.offset, self.position().offset),
             };
         }
-
-        panic!("Unexpected end of input while consuming keyword or identifier");
-        // If no valid token was found, return an unknown token
-        Token {
-            kind: TokenKind::Unknown,
-            value: None,
-            loc: SourceLocation::new(start.clone(), self.position()),
-            range: (start.offset, self.position().offset),
-        }
     }
 
     fn consume_numeric_literal(&mut self) -> Token {
@@ -488,10 +479,7 @@ impl<R: Read> Tokenizer<R> {
 mod tests {
     use super::{Token, Tokenizer};
     use insta;
-    use std::{
-        fs::File,
-        io::{BufRead, Cursor},
-    };
+    use std::{fs::File, io::BufRead};
 
     #[test]
     fn test_tokenizer_read_char() {
