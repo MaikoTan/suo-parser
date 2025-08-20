@@ -1,5 +1,4 @@
-use std::fs::File;
-use std::io::{BufRead, BufReader, Cursor, Read};
+use std::io::{BufRead, BufReader, Read};
 
 use super::utils::location::{Position, SourceLocation};
 use super::utils::log_types::NetSyncLogType;
@@ -71,24 +70,6 @@ impl<R: Read> Tokenizer<R> {
             column: 1,
             current_token: None,
         }
-    }
-}
-
-impl<'a> From<&'a str> for Tokenizer<Cursor<&'a str>> {
-    fn from(input: &'a str) -> Self {
-        Tokenizer::new(Cursor::new(input))
-    }
-}
-
-impl From<String> for Tokenizer<Cursor<String>> {
-    fn from(input: String) -> Self {
-        Tokenizer::new(Cursor::new(input))
-    }
-}
-
-impl From<File> for Tokenizer<File> {
-    fn from(file: File) -> Self {
-        Tokenizer::new(file)
     }
 }
 
