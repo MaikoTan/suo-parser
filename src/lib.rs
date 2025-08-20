@@ -1,3 +1,6 @@
+#![feature(bufreader_peek)]
+#![feature(buf_read_has_data_left)]
+
 mod generator;
 mod parser;
 mod tokenizer;

@@ -1,3 +1,6 @@
+use std::io::{BufRead, BufReader, Cursor, Read};
+use std::fs::File;
+
 use super::utils::location::{Position, SourceLocation};
 use super::utils::log_types::NetSyncLogType;
 
@@ -50,8 +53,8 @@ pub enum Keyword {
     AlarmText,
 }
 
-pub struct Tokenizer<'a> {
-    input: &'a str,
+pub struct Tokenizer<R: Read> {
+    reader: BufReader<R>,
     position: usize,
     line: u32,
     column: u32,
@@ -59,19 +62,49 @@ pub struct Tokenizer<'a> {
     pub current_token: Option<Token>,
 }
 
-impl<'a> Tokenizer<'a> {
-    pub fn new(input: &'a str) -> Self {
+impl<R: Read> Tokenizer<R> {
+    pub fn new(reader: R) -> Self {
         Self {
-            input,
+            reader: BufReader::new(reader),
             position: 0,
             line: 1,
             column: 1,
             current_token: None,
         }
     }
+}
 
+impl<'a> From<&'a str> for Tokenizer<Cursor<&'a str>> {
+    fn from(input: &'a str) -> Self {
+        Tokenizer::new(Cursor::new(input))
+    }
+}
+
+impl From<String> for Tokenizer<Cursor<String>> {
+    fn from(input: String) -> Self {
+        Tokenizer::new(Cursor::new(input))
+    }
+}
+
+impl From<File> for Tokenizer<File> {
+    fn from(file: File) -> Self {
+        Tokenizer::new(file)
+    }
+}
+
+impl<R: Read> Tokenizer<R> {
     pub fn position(&mut self) -> Position {
         Position::new(self.line, self.column, self.position)
+    }
+
+    fn peek_chars(&mut self, size: usize) -> Result<&[u8], std::io::Error> {
+        self.reader.peek(size)
+    }
+
+    fn read_chars(&mut self, size: usize) -> Result<Vec<u8>, std::io::Error> {
+        let mut buffer = vec![0; size];
+        self.reader.read_exact(&mut buffer)?;
+        Ok(buffer)
     }
 
     pub fn peek_token(&mut self) -> Option<Token> {
@@ -90,12 +123,12 @@ impl<'a> Tokenizer<'a> {
 
         self.skip_whitespace();
 
-        if self.position >= self.input.len() {
+        if !self.reader.has_data_left().ok().unwrap() {
             return None;
         }
 
         let start = self.position();
-        let char = self.input.as_bytes()[self.position];
+        let char = self.peek_chars(1).unwrap()[0];
 
         let token = if char.is_ascii_alphabetic() {
             self.consume_keyword()
@@ -110,6 +143,7 @@ impl<'a> Tokenizer<'a> {
         } else if char == b':' {
             self.position += 1;
             self.column += 1;
+            self.read_chars(1).unwrap(); // Consume the ':'
             Token {
                 kind: TokenKind::Colon,
                 value: Some(":".to_string()),
@@ -119,6 +153,7 @@ impl<'a> Tokenizer<'a> {
         } else if char == b'{' || char == b'}' {
             self.position += 1;
             self.column += 1;
+            self.read_chars(1).unwrap(); // Consume the '{' or '}'
             Token {
                 kind: TokenKind::Brace,
                 value: Some(char as char).map(|c| c.to_string()),
@@ -128,6 +163,7 @@ impl<'a> Tokenizer<'a> {
         } else if char == b',' {
             self.position += 1;
             self.column += 1;
+            self.read_chars(1).unwrap(); // Consume the ','
             Token {
                 kind: TokenKind::Punctuator,
                 value: Some(",".to_string()),
@@ -149,16 +185,27 @@ impl<'a> Tokenizer<'a> {
     }
 
     fn skip_whitespace(&mut self) {
-        while self.position < self.input.len()
-            && self.input[self.position..].starts_with(|c: char| c.is_whitespace())
+        while self.reader.has_data_left().ok().unwrap()
+            && self.peek_chars(1).unwrap()[0].is_ascii_whitespace()
         {
-            if self.input[self.position..].starts_with('\n') {
+            let char = self.peek_chars(1).unwrap()[0];
+            if char == b'\n' {
                 self.line += 1;
                 self.column = 1;
+            } else if char == b'\r' {
+                if self.peek_chars(2).unwrap()[1] == b'\n' {
+                    self.read_chars(1).unwrap(); // Consume the '\r'
+                    self.line += 1;
+                    self.column = 1;
+                } else {
+                    self.line += 1;
+                }
             } else {
                 self.column += 1;
             }
             self.position += 1;
+
+            self.read_chars(1).unwrap(); // Consume the whitespace character
         }
     }
 
@@ -181,12 +228,14 @@ impl<'a> Tokenizer<'a> {
         ];
 
         for keyword in keywords.iter() {
-            if self.input[self.position..].starts_with(keyword) {
+            if self.peek_chars(keyword.len()).unwrap() == keyword.as_bytes() {
                 let start = self.position();
                 self.position += keyword.len();
                 self.column += keyword.len() as u32;
 
                 let end = self.position();
+
+                self.read_chars(keyword.len()).unwrap(); // Consume the keyword
 
                 return Token {
                     kind: TokenKind::Keyword,
@@ -199,12 +248,14 @@ impl<'a> Tokenizer<'a> {
 
         // If no keyword matches, try parsing it as NetSyncLogType
         for key in NetSyncLogType::all_keys() {
-            if self.input[self.position..].starts_with(&key) {
+            if self.peek_chars(key.len()).unwrap() == key.as_bytes() {
                 let start = self.position();
                 self.position += key.len();
                 self.column += key.len() as u32;
 
                 let end = self.position();
+
+                self.read_chars(key.len()).unwrap(); // Consume the keyword
 
                 return Token {
                     kind: TokenKind::Keyword,
@@ -215,18 +266,34 @@ impl<'a> Tokenizer<'a> {
             }
         }
 
-        // Otherwise, return an identifier token
         let start = self.position();
-        while self.position < self.input.len()
-            && self.input[self.position..].starts_with(|c: char| c.is_ascii_alphanumeric() || c == '_')
         {
-            self.position += 1;
-            self.column += 1;
+            // Otherwise, return an identifier token
+            let mut name = String::new();
+            while self.reader.has_data_left().ok().unwrap() {
+                let char = self.peek_chars(1).unwrap()[0];
+                if char.is_ascii_alphanumeric() || char == b'_' {
+                    name.push(self.read_chars(1).unwrap()[0] as char);
+                    self.position += 1;
+                    self.column += 1;
+                } else {
+                    break;
+                }
+            }
+
+            return Token {
+                kind: TokenKind::Identifier,
+                value: Some(name),
+                loc: SourceLocation::new(start.clone(), self.position()),
+                range: (start.offset, self.position().offset),
+            }
         }
 
+        panic!("Unexpected end of input while consuming keyword or identifier");
+        // If no valid token was found, return an unknown token
         Token {
-            kind: TokenKind::Identifier,
-            value: Some(self.input[start.offset..self.position].to_string()),
+            kind: TokenKind::Unknown,
+            value: None,
             loc: SourceLocation::new(start.clone(), self.position()),
             range: (start.offset, self.position().offset),
         }
@@ -237,10 +304,11 @@ impl<'a> Tokenizer<'a> {
         let mut end = start.clone();
         let mut value = String::new();
 
-        while self.position < self.input.len() {
-            let current_char = self.input.as_bytes()[self.position] as char;
+        while self.reader.has_data_left().ok().unwrap() {
+            let current_char = self.peek_chars(1).unwrap()[0] as char;
 
             if current_char.is_ascii_digit() || current_char == '.' {
+                self.read_chars(1).unwrap();
                 value.push(current_char);
                 self.position += 1;
                 self.column += 1;
@@ -262,7 +330,7 @@ impl<'a> Tokenizer<'a> {
         let start = self.position();
         let mut end = start.clone();
         let mut value = String::new();
-        let quote_char = self.input.as_bytes()[self.position] as char; // Either '"' or '\''
+        let quote_char = self.read_chars(1).unwrap()[0] as char; // Either '"' or '\''
 
         // Ensure the first character is a quote
         if quote_char != '"' && quote_char != '\'' {
@@ -277,8 +345,8 @@ impl<'a> Tokenizer<'a> {
         self.position += 1; // Consume the opening quote
         self.column += 1;
 
-        while self.position < self.input.len() {
-            let current_char = self.input.as_bytes()[self.position] as char;
+        while self.reader.has_data_left().ok().unwrap() {
+            let current_char = self.read_chars(1).unwrap()[0] as char;
 
             if current_char == quote_char {
                 // Closing quote found
@@ -291,8 +359,8 @@ impl<'a> Tokenizer<'a> {
                 self.position += 1;
                 self.column += 1;
 
-                if self.position < self.input.len() {
-                    let escaped_char = self.input.as_bytes()[self.position] as char;
+                if self.reader.has_data_left().ok().unwrap() {
+                    let escaped_char = self.read_chars(1).unwrap()[0] as char;
                     match escaped_char {
                         'n' => value.push('\n'),
                         't' => value.push('\t'),
@@ -325,30 +393,35 @@ impl<'a> Tokenizer<'a> {
         let mut end = start.clone();
         let mut value = String::new();
 
-        if self.input.as_bytes()[self.position] != b'/' {
+        if self.peek_chars(1).unwrap()[0] != b'/' {
             return self.consume_unknown();
         }
 
-        self.position += 1; // Consume the opening '/'
+        self.read_chars(1).unwrap(); // Consume the opening '/'
+        self.position += 1;
         self.column += 1;
 
         let mut escaped = false;
-        while self.position < self.input.len() {
-            let current_char = self.input.as_bytes()[self.position] as char;
+        while self.reader.has_data_left().ok().unwrap() {
+            let current_char = self.peek_chars(1).unwrap()[0] as char;
 
             if escaped {
                 value.push(current_char);
+                self.read_chars(1).unwrap(); // Consume the escaped character
                 escaped = false;
             } else if current_char == '\\' {
                 value.push(current_char);
+                self.read_chars(1).unwrap(); // Consume the backslash
                 escaped = true;
             } else if current_char == '/' {
                 // Closing slash found
+                self.read_chars(1).unwrap(); // Consume the closing '/'
                 self.position += 1;
                 self.column += 1;
                 end = self.position();
                 break;
             } else {
+                self.read_chars(1).unwrap(); // Consume the regular character
                 value.push(current_char);
             }
 
@@ -370,12 +443,13 @@ impl<'a> Tokenizer<'a> {
         let mut end = start.clone();
         let mut value = String::new();
 
-        while self.position < self.input.len() {
-            let current_char = self.input.as_bytes()[self.position] as char;
+        while self.reader.has_data_left().ok().unwrap() {
+            let current_char = self.peek_chars(1).unwrap()[0] as char;
 
-            if current_char == '\n' {
+            if current_char == '\n' || current_char == '\r' {
                 break;
             } else {
+                self.read_chars(1).unwrap(); // Consume the character
                 value.push(current_char);
                 self.position += 1;
                 self.column += 1;
@@ -393,10 +467,11 @@ impl<'a> Tokenizer<'a> {
 
     fn consume_unknown(&mut self) -> Token {
         let start = self.position();
-        let current_char = self.input.as_bytes()[self.position] as char;
+        let current_char = self.peek_chars(1).unwrap()[0] as char;
 
-        self.position += 1; // Consume the character
+        self.position += 1;
         self.column += 1;
+        self.read_chars(1).unwrap(); // Consume the character
 
         let end = self.position();
 
@@ -411,11 +486,29 @@ impl<'a> Tokenizer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Token, TokenKind, Tokenizer};
+    use std::{fs::File, io::{BufRead, Cursor}};
+    use super::{Token, Tokenizer};
     use insta;
 
+    #[test]
+    fn test_tokenizer_read_char() {
+        let mut tokenizer: Tokenizer<_> = "100 \"name\" # comment".into();
+        assert_eq!(tokenizer.reader.has_data_left().unwrap(), true);
+        assert_eq!(tokenizer.peek_chars(3).unwrap(), b"100");
+        assert_eq!(tokenizer.read_chars(3).unwrap(), b"100");
+        assert_eq!(tokenizer.peek_chars(1).unwrap(), b" ");
+        assert_eq!(tokenizer.read_chars(1).unwrap(), b" ");
+        assert_eq!(tokenizer.peek_chars(6).unwrap(), b"\"name\"");
+        assert_eq!(tokenizer.read_chars(6).unwrap(), b"\"name\"");
+        assert_eq!(tokenizer.peek_chars(1).unwrap(), b" ");
+        assert_eq!(tokenizer.read_chars(1).unwrap(), b" ");
+        assert_eq!(tokenizer.peek_chars(9).unwrap(), b"# comment");
+        assert_eq!(tokenizer.read_chars(9).unwrap(), b"# comment");
+        assert_eq!(tokenizer.reader.has_data_left().unwrap(), false);
+    }
+
     fn all_tokens(input: &str) -> Vec<Token> {
-        let mut tokenizer = Tokenizer::new(input);
+        let mut tokenizer: Tokenizer<_> = input.into();
         let mut tokens = Vec::new();
         while let Some(token) = tokenizer.next_token() {
             tokens.push(token);
@@ -428,6 +521,20 @@ mod tests {
         let vec = all_tokens("\"name\"");
 
         insta::assert_debug_snapshot!("Quoted String", vec);
+    }
+
+    #[test]
+    fn test_tokenizer_identifier() {
+        let vec = all_tokens("identifier");
+
+        insta::assert_debug_snapshot!("Identifier", vec);
+    }
+
+    #[test]
+    fn test_tokenizer_identifier2() {
+        let vec = all_tokens("identifier\nidentifier");
+
+        insta::assert_debug_snapshot!("Identifier2", vec);
     }
 
     #[test]
@@ -489,62 +596,24 @@ mod tests {
     #[test]
     fn test_tokenizer_full_timeline() {
         // Taken from https://github.com/OverlayPlugin/cactbot/blob/main/ui/raidboss/data/00-misc/test.txt
-        let vec = all_tokens(r#"# I am but a wee little test timeline
-#
-# Teleport your way to Summerford Farms, ancestral home of striking dummies.
-#
-# Make sure emotes show up in your log, such that /bow generates a line such
-# as "You bow courteously to the striking dummy." Once that is turned on,
-# /bow to the striking dummy to start the timeline.
-#
-# Alternatively, do a countdown, such as "/countdown 5" which will also
-# start it.
-#
-# /poke, /pysch, or /laugh at the striking dummy for trigger examples.
-#
-# /goodbye to the striking dummy to stop the timeline.
+        let vec = {
+            let file = File::open("./src/tests/data/test.txt")
+                .expect("Failed to open test file");
+            let mut tokenizer: Tokenizer<_> = file.into();
 
-hideall "--Reset--"
-hideall "--sync--"
-
-0 "--Reset--" GameLog { code: "001D", line: "You bid farewell to the striking dummy.*?" } window 0,10000 jump 0
-
-# two examples with different quoting which should both be supported
-0 "--sync--" GameLog { line: 'testNetRegexTimeline' } window 100000,100000
-0 "--sync--" GameLog { "line": "testNetRegexTimeline" } window 100000,100000
-
-0 "--sync--" GameLog { code: "0039", line: "Engage!.*?" } window 100000,100000
-0 "--sync--" GameLog { code: "001D", line: "You bow courteously to the striking dummy.*?" } window 0,1
-3 "Almagest"
-6 "Angry Dummy"
-10 "Long Castbar" duration 10
-15 "Final Sting"
-18 "Pentacle Sac (DPS)"
-25 "Super Tankbuster" GameLog { code: "0038", line: "test sync1.*?" } window 30,30
-30 "Dummy Stands Still"
-40 "Death"
-
-50 "--sync--" GameLog { code: "0038", line: "test sync2.*?" } window 100,1 forcejump "loop"
-
-# Loop test!
-100 label "loop"
-102 "Two"
-103 label "three"
-103 "Three"
-104 "Four"
-106 "Six"
-110 "Ten" #duration 100
-115 "Fifteen"
-118 "Force Jump Three" GameLog { code: "0038", line: "test sync3.*?" } window 10,10 forcejump "three"
-120 "Invisible" GameLog { code: "0038", line: "test sync4.*?" } forcejump 1000
-"#);
+            let mut vec = Vec::new();
+            while let Some(token) = tokenizer.next_token() {
+                vec.push(token);
+            }
+            vec
+        };
 
         insta::assert_debug_snapshot!("Full Timeline", vec);
     }
 
     #[test]
     fn test_tokenizer_peek_token() {
-        let mut tokenizer = Tokenizer::new("0 \"test\" sync /regex/");
+        let mut tokenizer: Tokenizer<_> = "0 \"test\" sync /regex/".into();
         let v = {
             let mut vec = Vec::new();
             // NumericLiteral
