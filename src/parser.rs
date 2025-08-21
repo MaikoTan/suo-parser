@@ -1,604 +1,530 @@
-// import { Tokenizer } from "./tokenizer";
-// import {
-//   AlertAllStatement,
-//   BeforeStatement,
-//   CommentLine,
-//   DefineStatement,
-//   DurationStatement,
-//   Entry,
-//   HideAllStatement,
-//   JumpStatement,
-//   NetSyncStatement,
-//   Program,
-//   SoundStatement,
-//   Statement,
-//   SyncStatement,
-//   Token,
-//   WindowStatement,
-// } from "./types";
-// import { Position, SourceLocation } from "./utils/location";
-// import { netSyncLogType } from "./utils/logTypes";
+use std::io::Read;
 
-// export interface ParserOptions {
-//   sourceFile?: string;
-//   sourceType?: "script" | "module";
-// }
+use crate::tokenizer::{TokenKind, Tokenizer};
+use crate::types::semantic_ast::*;
 
-// export class Parser {
-//   tokenizer: Tokenizer;
-//   options: ParserOptions;
+impl From<String> for Time {
+    fn from(value: String) -> Self {
+        if let Ok(int_value) = value.parse::<u64>() {
+            Time::Integer(int_value)
+        } else if let Ok(float_value) = value.parse::<f64>() {
+            Time::Float(float_value)
+        } else {
+            panic!("Invalid time format: {}", value);
+        }
+    }
+}
 
-//   tokens: Array<Token>;
-//   statements: Array<Statement | Entry>;
-//   comments: Array<CommentLine>;
+pub struct Parser<R: Read> {
+    tokenizer: Tokenizer<R>,
+    program: Program,
+}
 
-//   constructor(tokenizer: Tokenizer, options: ParserOptions = {}) {
-//     this.tokenizer = tokenizer;
+impl<R: Read> Parser<R> {
+    pub fn new(tokenizer: Tokenizer<R>) -> Self {
+        Parser {
+            tokenizer,
+            program: Program {
+                defines: Vec::new(),
+                hide_alls: Vec::new(),
+                alert_alls: Vec::new(),
+                entries: Vec::new(),
+            },
+        }
+    }
+}
 
-//     this.tokens = [];
-//     this.statements = [];
-//     this.comments = [];
+impl<R: Read> Parser<R> {
+    pub fn parse(&mut self) -> Program {
+        while self.tokenizer.has_next_token() {
+            let stmt = self.parse_statement().unwrap();
+            match stmt {
+                Statement::Define(DefineStmt {
+                    define_type,
+                    name,
+                    file,
+                }) => {
+                    self.program.defines.push(DefineStmt {
+                        define_type,
+                        name,
+                        file,
+                    });
+                }
+                Statement::HideAll(HideAllStmt { name }) => {
+                    self.program.hide_alls.push(HideAllStmt { name });
+                }
+                Statement::AlertAll(AlertAllStmt {
+                    name,
+                    before,
+                    sound,
+                }) => {
+                    self.program.alert_alls.push(AlertAllStmt {
+                        name,
+                        before,
+                        sound,
+                    });
+                }
+                Statement::Entry(EntryStmt {
+                    time,
+                    name,
+                    sync,
+                    window,
+                    duration,
+                    jump,
+                }) => {
+                    self.program.entries.push(EntryStmt {
+                        time,
+                        name,
+                        sync,
+                        window,
+                        duration,
+                        jump,
+                    });
+                }
+                _ => {
+                    panic!("Unexpected statement: {:?}", stmt);
+                }
+            }
+        }
 
-//     this.options = {
-//       sourceType: "module",
-//       ...options,
-//     };
-//   }
+        self.program.clone()
+    }
 
-//   parse(): Program {
-//     while (this.tokenizer.hasNextToken()) {
-//       const stmt = this.parseStatement();
-//       if (stmt) {
-//         if (stmt.type === "CommentLine") {
-//           this.comments.push(stmt);
-//         } else {
-//           this.statements.push(stmt);
-//         }
-//       } else {
-//         throw new Error("Unexpected token: " + this.tokenizer.peekToken());
-//       }
-//     }
+    fn parse_statement(&mut self) -> Option<Statement> {
+        let token = self.tokenizer.peek_token().unwrap();
+        match token.kind {
+            TokenKind::Comment => {
+                // TODO: Implement comment parsing
+                None
+            }
+            TokenKind::Keyword => {
+                let value = token.value?;
+                let keyword = value.as_str();
+                match keyword {
+                    "hideall" => self.parse_hide_all_statement(),
+                    "alertall" => self.parse_alert_all_statement(),
+                    "define" => self.parse_define_statement(),
+                    _ => panic!("Unexpected keyword: {}", keyword),
+                }
+            }
+            TokenKind::NumericLiteral => self.parse_entry_statement(),
+            _ => panic!("Unexpected token: {:?}", token),
+        }
+    }
 
-//     return {
-//       type: "Program",
-//       body: this.statements,
-//       sourceType: this.options.sourceType ?? "module",
-//       sourceFile: this.options.sourceFile ?? "",
-//       range: [0, this.tokenizer.index],
-//       loc: new SourceLocation(new Position(1, 0), new Position(this.tokenizer.line, this.tokenizer.column)),
-//       comments: this.comments,
-//       tokens: this.tokens,
-//     };
-//   }
+    fn parse_hide_all_statement(&mut self) -> Option<Statement> {
+        let token = self.tokenizer.next_token().unwrap(); // keyword hideall
+        let name = self.tokenizer.next_token().unwrap(); // string literal
 
-//   parseStatement(): Statement | CommentLine | Entry | null {
-//     const token = this.tokenizer.peekToken();
-//     switch (token.type) {
-//       case "Comment":
-//         this.tokenizer.nextToken();
-//         return {
-//           type: "CommentLine",
-//           value: token.value,
-//           loc: token.loc,
-//           start: token.start,
-//           end: token.end,
-//         };
+        if token.kind != TokenKind::Keyword || name.kind != TokenKind::StringLiteral {
+            panic!("Unexpected token types: {:?}, {:?}", token, name);
+        }
+        Some(Statement::HideAll(HideAllStmt { name: name.value? }))
+    }
 
-//       case "Keyword":
-//         switch (token.value) {
-//           case "hideall":
-//             return this.parseHideAllStatement();
-//           case "alertall":
-//             return this.parseAlertAllStatement();
-//           case "define":
-//             return this.parseDefineStatement();
-//           default:
-//             return null;
-//         }
+    fn parse_alert_all_statement(&mut self) -> Option<Statement> {
+        let token = self.tokenizer.next_token().unwrap(); // keyword alertall
+        let name = self.tokenizer.next_token().unwrap(); // string literal
 
-//       case "NumericLiteral":
-//         return this.parseEntry();
+        if token.kind != TokenKind::Keyword || name.kind != TokenKind::StringLiteral {
+            panic!("Unexpected token types: {:?}, {:?}", token, name);
+        }
 
-//       default:
-//         if (token.type === "Unknown") {
-//           throw new Error(`Unexpected token: ${token}`);
-//         } else {
-//           return null;
-//         }
-//     }
-//   }
+        let mut before: Option<Time> = None;
+        let mut sound: Option<String> = None;
 
-//   parseHideAllStatement(): HideAllStatement {
-//     const token = this.tokenizer.nextToken();
-//     const stringToken = this.tokenizer.nextToken();
-//     if (stringToken.type !== "StringLiteral") {
-//       console.log(stringToken);
-//       throw new Error("Unexpected token type: " + stringToken.type);
-//     }
+        while self.tokenizer.has_next_token() {
+            let next_token = self.tokenizer.peek_token().unwrap();
+            if next_token.kind != TokenKind::Keyword {
+                break;
+            }
 
-//     return {
-//       type: "HideAllStatement",
-//       range: [token.start, stringToken.end],
-//       loc: new SourceLocation(token.loc.start, stringToken.loc.end),
-//       name: {
-//         range: [stringToken.start, stringToken.end],
-//         ...stringToken,
-//       },
-//     };
-//   }
+            let keyword = next_token.value.as_ref().unwrap();
+            self.tokenizer.next_token(); // consume keyword
 
-//   parseAlertAllStatement(): AlertAllStatement {
-//     const token = this.tokenizer.nextToken();
-//     const stringToken = this.tokenizer.nextToken();
-//     if (stringToken.type !== "StringLiteral") {
-//       console.log(stringToken);
-//       throw new Error("Unexpected token type: " + token.type);
-//     }
+            match keyword.as_str() {
+                "before" => {
+                    let time_token = self.tokenizer.next_token().unwrap();
+                    if time_token.kind != TokenKind::NumericLiteral {
+                        panic!("Unexpected token type for before: {:?}", time_token);
+                    }
+                    let time_literal = time_token.value?;
+                    let value = Time::from(time_literal);
+                    before = Some(value);
+                }
+                "sound" => {
+                    let sound_token = self.tokenizer.next_token().unwrap();
+                    if sound_token.kind != TokenKind::StringLiteral {
+                        panic!("Unexpected token type for sound: {:?}", sound_token);
+                    }
+                    sound = Some(sound_token.value?);
+                }
+                _ => panic!("Unexpected keyword in alertall: {}", keyword),
+            }
+        }
 
-//     let before: BeforeStatement | null = null;
-//     let sound: SoundStatement | null = null;
-//     while (this.tokenizer.hasNextToken()) {
-//       const nextToken = this.tokenizer.peekToken();
-//       if (nextToken.type !== "Keyword") break;
+        Some(Statement::AlertAll(AlertAllStmt {
+            name: name.value?,
+            before,
+            sound,
+        }))
+    }
 
-//       this.tokenizer.nextToken();
-//       const nextNextToken = this.tokenizer.nextToken();
+    fn parse_define_statement(&mut self) -> Option<Statement> {
+        let token = self.tokenizer.next_token().unwrap(); // keyword define
+        let define_type = self.tokenizer.next_token().unwrap(); // identifier (should be "alertsound")
+        if define_type.kind != TokenKind::Identifier
+            || define_type.value.as_ref() != Some(&"alertsound".to_string())
+        {
+            panic!("Unexpected token type for define: {:?}", define_type);
+        }
 
-//       switch (nextToken.value) {
-//         case "before":
-//           if (nextNextToken.type !== "NumericLiteral") {
-//             throw new Error("Unexpected token type: " + nextNextToken.type);
-//           }
-//           before = {
-//             type: "BeforeStatement",
-//             range: [nextToken.start, nextNextToken.end],
-//             loc: new SourceLocation(nextToken.loc.start, nextNextToken.loc.end),
-//             time: {
-//               type: "NumericLiteral",
-//               value: parseFloat(nextNextToken.value),
-//               range: [nextNextToken.start, nextNextToken.end],
-//               loc: nextNextToken.loc,
-//               raw: nextNextToken.raw,
-//             },
-//           };
-//           break;
-//         case "sound":
-//           if (nextNextToken.type !== "StringLiteral") {
-//             throw new Error("Unexpected token type: " + nextNextToken.type);
-//           }
-//           sound = {
-//             type: "SoundStatement",
-//             range: [nextToken.start, nextNextToken.end],
-//             loc: new SourceLocation(nextToken.loc.start, nextNextToken.loc.end),
-//             file: {
-//               range: [nextNextToken.start, nextNextToken.end],
-//               ...nextNextToken,
-//             },
-//           };
-//           break;
-//         default:
-//           break;
-//       }
-//     }
+        let name = self.tokenizer.next_token().unwrap(); // string literal
+        if name.kind != TokenKind::StringLiteral {
+            panic!("Unexpected token type for name: {:?}", name);
+        }
 
-//     const stmt: AlertAllStatement = {
-//       type: "AlertAllStatement",
-//       range: [token.start, stringToken.end],
-//       loc: new SourceLocation(token.loc.start, stringToken.loc.end),
-//       name: {
-//         range: [stringToken.start, stringToken.end],
-//         ...stringToken,
-//       },
-//     };
+        let file = self.tokenizer.next_token().unwrap(); // string literal
+        if file.kind != TokenKind::StringLiteral {
+            panic!("Unexpected token type for file: {:?}", file);
+        }
 
-//     if (before) {
-//       stmt.before = before;
-//     }
-//     if (sound) {
-//       stmt.sound = sound;
-//     }
+        Some(Statement::Define(DefineStmt {
+            define_type: DefineType::AlertSound,
+            name: name.value?,
+            file: file.value?,
+        }))
+    }
 
-//     return stmt;
-//   }
+    fn parse_entry_statement(&mut self) -> Option<Statement> {
+        let token = self.tokenizer.next_token().unwrap(); // numeric literal
+        let name = self.tokenizer.next_token().unwrap(); // string literal
 
-//   parseDefineStatement(): DefineStatement {
-//     const token = this.tokenizer.nextToken();
-//     const identifier = this.tokenizer.nextToken();
-//     if (identifier.type !== "Identifier" && identifier.value !== "alertsound") {
-//       console.log(identifier);
-//       throw new Error(`Unexpected token: { type: ${identifier.type},value: ${identifier.value} }`);
-//     }
+        if token.kind != TokenKind::NumericLiteral || name.kind != TokenKind::StringLiteral {
+            panic!("Unexpected token types: {:?}, {:?}", token, name);
+        }
 
-//     const nameToken = this.tokenizer.nextToken();
-//     if (nameToken.type !== "StringLiteral") {
-//       console.log(nameToken);
-//       throw new Error("Unexpected token type: " + nameToken.type);
-//     }
+        let time = Time::from(token.value.unwrap());
+        let name_value = name.value.unwrap();
 
-//     const fileToken = this.tokenizer.nextToken();
-//     if (fileToken.type !== "StringLiteral") {
-//       console.log(fileToken);
-//       throw new Error("Unexpected token type: " + fileToken.type);
-//     }
+        let mut sync: Option<AnySyncStmt> = None;
+        let mut window: Option<WindowStmt> = None;
+        let mut duration: Option<DurationStmt> = None;
+        let mut jump: Option<JumpStmt> = None;
 
-//     const stmt: DefineStatement = {
-//       type: "DefineStatement",
-//       range: [token.start, identifier.end],
-//       loc: new SourceLocation(token.loc.start, identifier.loc.end),
-//       defineType: "alertsound",
-//       name: {
-//         range: [nameToken.start, nameToken.end],
-//         ...nameToken,
-//       },
-//       file: {
-//         range: [fileToken.start, fileToken.end],
-//         ...fileToken,
-//       },
-//     };
-//     return stmt;
-//   }
+        while self.tokenizer.has_next_token() {
+            let next_token = self.tokenizer.peek_token().unwrap();
+            if next_token.kind != TokenKind::Keyword {
+                break;
+            }
 
-//   parseEntry(): Entry {
-//     const token = this.tokenizer.nextToken();
-//     const nameStrLit = this.tokenizer.nextToken();
-//     if (token.type !== "NumericLiteral") {
-//       console.log(token);
-//       throw new Error("Unexpected token type: " + token.type);
-//     }
-//     if (nameStrLit.type !== "StringLiteral") {
-//       console.log(nameStrLit);
-//       throw new Error(`Unexpected token: { type: ${nameStrLit.type},value: ${nameStrLit.value} }`);
-//     }
+            let keyword = next_token.value.as_ref().unwrap();
+            self.tokenizer.peek_token();
 
-//     const stmt: Entry = {
-//       type: "Entry",
-//       range: [token.start, nameStrLit.end],
-//       loc: new SourceLocation(token.loc.start, nameStrLit.loc.end),
-//       time: {
-//         type: "NumericLiteral",
-//         value: parseFloat(token.value),
-//         range: [token.start, token.end],
-//         loc: token.loc,
-//         raw: token.raw,
-//       },
-//       name: {
-//         range: [nameStrLit.start, nameStrLit.end],
-//         ...nameStrLit,
-//       },
-//     };
+            match keyword.as_str() {
+                "sync" => {
+                    sync = Some(self.parse_sync_statement()?);
+                }
+                "window" => {
+                    window = Some(self.parse_window_statement()?);
+                }
+                "duration" => {
+                    duration = Some(self.parse_duration_statement()?);
+                }
+                "jump" => {
+                    jump = Some(self.parse_jump_statement()?);
+                }
+                _ => panic!("Unexpected keyword in entry statement: {}", keyword),
+            }
+        }
 
-//     while (this.tokenizer.hasNextToken()) {
-//       const nextToken = this.tokenizer.peekToken();
-//       if (
-//         nextToken.type !== "Keyword" ||
-//         !(
-//           nextToken.value === "sync" ||
-//           nextToken.value === "window" ||
-//           nextToken.value === "jump" ||
-//           nextToken.value === "duration" ||
-//           netSyncLogType.includes(nextToken.value)
-//         )
-//       ) {
-//         break;
-//       }
+        Some(Statement::Entry(EntryStmt {
+            time,
+            name: name_value,
+            sync,
+            window,
+            duration,
+            jump,
+        }))
+    }
 
-//       if (netSyncLogType.includes(nextToken.value)) {
-//         stmt.sync = this.parseNetSyncStatement();
-//       }
-//       if (nextToken.value === "sync") {
-//         stmt.sync = this.parseSyncStatement();
-//       }
-//       if (nextToken.value === "window") {
-//         stmt.window = this.parseWindowStatement();
-//       }
-//       if (nextToken.value === "jump") {
-//         stmt.jump = this.parseJumpStatement();
-//       }
-//       if (nextToken.value === "duration") {
-//         stmt.duration = this.parseDurationStatement();
-//       }
-//     }
-//     return stmt;
-//   }
+    fn parse_sync_statement(&mut self) -> Option<AnySyncStmt> {
+        let token = self.tokenizer.next_token().unwrap(); // keyword sync
+        if token.kind != TokenKind::Keyword || token.value.as_ref() != Some(&"sync".to_string()) {
+            panic!("Unexpected token type for sync: {:?}", token);
+        }
 
-//   parseNetSyncStatement(): NetSyncStatement {
-//     const typeToken = this.tokenizer.nextToken();
-//     if (typeToken.type !== "Keyword") {
-//       console.log(typeToken);
-//       throw new Error(`Unexpected token type: ${typeToken.type}`);
-//     }
+        let regex_token = self.tokenizer.next_token().unwrap(); // regex literal
+        if regex_token.kind != TokenKind::RegularExpression {
+            panic!("Unexpected token type for regex: {:?}", regex_token);
+        }
 
-//     const stmt: NetSyncStatement = {
-//       type: "NetSyncStatement",
-//       syncType: typeToken.value,
-//       fields: {},
-//       range: [typeToken.start, typeToken.end],
-//       loc: new SourceLocation(typeToken.loc.start, typeToken.loc.end),
-//     };
+        Some(AnySyncStmt::SyncStmt(SyncStmt {
+            regex: regex_token.value.unwrap(),
+        }))
+    }
 
-//     const leftBrace = this.tokenizer.nextToken();
-//     if (leftBrace.type !== "Brace" || leftBrace.value !== "{") {
-//       console.log(leftBrace);
-//       throw new Error(`Unexpected token: ${leftBrace.value}`);
-//     }
+    fn parse_jump_statement(&mut self) -> Option<JumpStmt> {
+        let token = self.tokenizer.next_token().unwrap(); // keyword jump
+        if token.kind != TokenKind::Keyword || token.value.as_ref() != Some(&"jump".to_string()) {
+            panic!("Unexpected token type for jump: {:?}", token);
+        }
 
-//     while (this.tokenizer.hasNextToken()) {
-//       const nextToken = this.tokenizer.peekToken();
-//       if (nextToken.type === "Identifier") {
-//         const keyToken = this.tokenizer.nextToken();
-//         if (keyToken.type !== "Identifier") {
-//           console.log(keyToken);
-//           throw new Error(`Unexpected token: ${keyToken.value}`);
-//         }
-//         const colonToken = this.tokenizer.nextToken();
-//         if (colonToken.type !== "Punctuator" || colonToken.value !== ":") {
-//           console.log(colonToken);
-//           throw new Error(`Unexpected token: ${colonToken.value}`);
-//         }
-//         const valueToken = this.tokenizer.nextToken();
-//         if (valueToken.type !== "StringLiteral" && valueToken.type !== "NumericLiteral") {
-//           console.log(valueToken);
-//           throw new Error(`Unexpected token: ${valueToken.value}`);
-//         }
-//         stmt.fields[keyToken.value] = valueToken.value;
-//       }
-//       const rightBrace = this.tokenizer.peekToken();
-//       if (rightBrace.type === "Brace" && rightBrace.value === "}") {
-//         this.tokenizer.nextToken();
-//         break;
-//       }
-//       if (rightBrace.type === "Punctuator" && rightBrace.value === ",") {
-//         this.tokenizer.nextToken();
-//         continue;
-//       }
-//       console.log(rightBrace);
-//       throw new Error(`Unexpected token: ${rightBrace.value}`);
-//     }
-//     return stmt;
-//   }
+        let time = self.tokenizer.next_token().unwrap(); // numeric literal
+        if time.kind != TokenKind::NumericLiteral {
+            panic!("Unexpected token type for time: {:?}", time);
+        }
 
-//   parseSyncStatement(): SyncStatement {
-//     const token = this.tokenizer.nextToken();
-//     const regexLit = this.tokenizer.nextToken();
-//     if (regexLit.type !== "RegularExpression") {
-//       console.log(token);
-//       throw new Error(`Unexpected token type: ${token.type}`);
-//     }
+        Some(JumpStmt {
+            time: Time::from(time.value.unwrap()),
+        })
+    }
 
-//     const stmt: SyncStatement = {
-//       type: "SyncStatement",
-//       range: [token.start, token.end],
-//       loc: token.loc,
-//       regex: {
-//         type: "RegExpLiteral",
-//         flags: "",
-//         pattern: regexLit.value,
-//         range: [regexLit.start, regexLit.end],
-//         loc: regexLit.loc,
-//         raw: regexLit.raw,
-//       },
-//     };
-//     return stmt;
-//   }
+    fn parse_duration_statement(&mut self) -> Option<DurationStmt> {
+        let token = self.tokenizer.next_token().unwrap(); // keyword duration
+        if token.kind != TokenKind::Keyword || token.value.as_ref() != Some(&"duration".to_string())
+        {
+            panic!("Unexpected token type for duration: {:?}", token);
+        }
 
-//   parseWindowStatement(): WindowStatement {
-//     const token = this.tokenizer.nextToken();
-//     const numLit = this.tokenizer.nextToken();
-//     if (numLit.type !== "NumericLiteral") {
-//       console.log(token);
-//       throw new Error(`Unexpected token type: ${token.type}`);
-//     }
+        let time = self.tokenizer.next_token().unwrap(); // numeric literal
+        if time.kind != TokenKind::NumericLiteral {
+            panic!("Unexpected token type for time: {:?}", time);
+        }
 
-//     const stmt: WindowStatement = {
-//       type: "WindowStatement",
-//       range: [token.start, numLit.end],
-//       loc: new SourceLocation(token.loc.start, numLit.loc.end),
-//       // assign the same value temporarily
-//       before: {
-//         type: "NumericLiteral",
-//         value: parseFloat(numLit.value),
-//         range: [numLit.start, numLit.end],
-//         loc: numLit.loc,
-//         raw: numLit.raw,
-//       },
-//     };
+        Some(DurationStmt {
+            time: Time::from(time.value.unwrap()),
+        })
+    }
 
-//     if (this.tokenizer.hasNextToken() && this.tokenizer.peekToken().type === "Punctuator") {
-//       const nextToken = this.tokenizer.nextToken();
-//       if (nextToken.value !== ",") {
-//         console.log(nextToken);
-//         throw new Error(`Unexpected token: ${nextToken.value}`);
-//       }
+    fn parse_window_statement(&mut self) -> Option<WindowStmt> {
+        let token = self.tokenizer.next_token().unwrap(); // keyword window
+        if token.kind != TokenKind::Keyword || token.value.as_ref() != Some(&"window".to_string()) {
+            panic!("Unexpected token type for window: {:?}", token);
+        }
 
-//       const numLit2 = this.tokenizer.nextToken();
-//       if (numLit2.type !== "NumericLiteral") {
-//         console.log(numLit2);
-//         throw new Error(`Unexpected token type: ${numLit2.type}`);
-//       }
+        let before = self.tokenizer.next_token().unwrap(); // numeric literal
+        if before.kind != TokenKind::NumericLiteral {
+            panic!("Unexpected token type for time: {:?}", before);
+        }
 
-//       stmt.after = {
-//         type: "NumericLiteral",
-//         value: parseFloat(numLit2.value),
-//         range: [numLit2.start, numLit2.end],
-//         loc: numLit2.loc,
-//         raw: numLit2.raw,
-//       };
-//     }
+        if self.tokenizer.peek_token().unwrap().kind == TokenKind::Punctuator {
+            let comma = self.tokenizer.next_token().unwrap(); // comma
+            if comma.kind != TokenKind::Punctuator || comma.value.as_ref() != Some(&",".to_string())
+            {
+                panic!("Expected a comma after before time, found: {:?}", comma);
+            }
 
-//     return stmt;
-//   }
+            let after = self.tokenizer.next_token().unwrap(); // numeric literal
+            if after.kind != TokenKind::NumericLiteral {
+                panic!("Unexpected token type for after time: {:?}", after);
+            }
 
-//   parseJumpStatement(): JumpStatement {
-//     const token = this.tokenizer.nextToken();
-//     const numLit = this.tokenizer.nextToken();
-//     if (numLit.type !== "NumericLiteral") {
-//       console.log(numLit);
-//       throw new Error(`Unexpected token type: ${numLit.type}`);
-//     }
+            return Some(WindowStmt {
+                before: Time::from(before.value.unwrap()),
+                after: Some(Time::from(after.value.unwrap())),
+            });
+        }
 
-//     const stmt: JumpStatement = {
-//       type: "JumpStatement",
-//       range: [token.start, numLit.end],
-//       loc: new SourceLocation(token.loc.start, numLit.loc.end),
-//       time: {
-//         type: "NumericLiteral",
-//         value: parseFloat(numLit.value),
-//         range: [numLit.start, numLit.end],
-//         loc: numLit.loc,
-//         raw: numLit.raw,
-//       },
-//     };
-
-//     return stmt;
-//   }
-
-//   parseDurationStatement(): DurationStatement {
-//     const token = this.tokenizer.nextToken();
-//     const numLit = this.tokenizer.nextToken();
-//     if (numLit.type !== "NumericLiteral") {
-//       console.log(numLit);
-//       throw new Error(`Unexpected token type: ${numLit.type}`);
-//     }
-
-//     const stmt: DurationStatement = {
-//       type: "DurationStatement",
-//       range: [token.start, numLit.end],
-//       loc: new SourceLocation(token.loc.start, numLit.loc.end),
-//       time: {
-//         type: "NumericLiteral",
-//         value: parseFloat(numLit.value),
-//         range: [numLit.start, numLit.end],
-//         loc: numLit.loc,
-//         raw: numLit.raw,
-//       },
-//     };
-
-//     return stmt;
-//   }
-// }
+        Some(WindowStmt {
+            before: Time::from(before.value.unwrap()),
+            after: None,
+        })
+    }
+}
 
 #[cfg(test)]
 mod tests {
-  // import { expect } from "chai";
-  // import { parseAsync } from "../src";
+    use super::Parser;
+    use crate::{tokenizer::Tokenizer, types::semantic_ast::*};
 
-  // describe("Parser", () => {
-  //   /**
-  //    * This shape should be like:
-  //    *
-  //    * HideAllStatement:
-  //    *   name: StringLiteral
-  //    */
-  //   it("hideall statement", async () => {
-  //     const ast = await parseAsync('hideall "--sync--"');
-  //     expect(ast.type).to.equal("Program");
-  //     expect(ast.body.length).to.equal(1);
-  //     const stmt = ast.body[0];
-  //     expect(stmt.type).to.equal("HideAllStatement");
-  //     expect(stmt).to.have.nested.property("name.type", "StringLiteral");
-  //     expect(stmt).to.have.nested.property("name.value", "--sync--");
-  //   });
+    use insta;
 
-  //   /**
-  //    * This shape should be like:
-  //    *
-  //    * AlertAllStatement:
-  //    *   name: StringLiteral
-  //    *   before?: BeforeStatement
-  //    *     time: NumericLiteral
-  //    *   sound?: SoundStatement
-  //    *     file: StringLiteral
-  //    */
-  //   it("alertall statement", async () => {
-  //     const ast = await parseAsync('alertall "name" before 1 sound "file"');
-  //     expect(ast.type).to.equal("Program");
-  //     expect(ast.body.length).to.equal(1);
-  //     const stmt = ast.body[0];
-  //     expect(stmt.type).to.equal("AlertAllStatement");
-  //     expect(stmt).to.have.nested.property("name.type", "StringLiteral");
-  //     expect(stmt).to.have.nested.property("name.value", "name");
-  //     expect(stmt).to.have.nested.property("before.type", "BeforeStatement");
-  //     expect(stmt).to.have.nested.property("before.time.type", "NumericLiteral");
-  //     expect(stmt).to.have.nested.property("before.time.value", 1);
-  //     expect(stmt).to.have.nested.property("sound.type", "SoundStatement");
-  //     expect(stmt).to.have.nested.property("sound.file.type", "StringLiteral");
-  //     expect(stmt).to.have.nested.property("sound.file.value", "file");
-  //   });
+    fn parse(input: &str) -> Program {
+        let tokenizer: Tokenizer<_> = input.into();
+        let mut parser = Parser::new(tokenizer);
+        parser.parse()
+    }
 
-  //   /**
-  //    * This shape should be like:
-  //    *
-  //    * DefineStatement:
-  //    *   defineType: "alertsound"
-  //    *   name: StringLiteral
-  //    *   file: StringLiteral
-  //    */
-  //   it("define statement", async () => {
-  //     const ast = await parseAsync('define alertsound "name" "file"');
-  //     expect(ast.type).to.equal("Program");
-  //     expect(ast.body.length).to.equal(1);
-  //     const stmt = ast.body[0];
-  //     expect(stmt.type).to.equal("DefineStatement");
-  //     expect(stmt).to.have.own.property("defineType", "alertsound");
-  //     expect(stmt).to.have.nested.property("name.type", "StringLiteral");
-  //     expect(stmt).to.have.nested.property("name.value", "name");
-  //     expect(stmt).to.have.nested.property("file.type", "StringLiteral");
-  //     expect(stmt).to.have.nested.property("file.value", "file");
-  //   });
+    #[test]
+    fn test_parser_creation() {
+        parse("hideall \"--sync--\"");
+        return ();
+    }
 
-  //   /**
-  //    * This shape should be like:
-  //    *
-  //    * Entry:
-  //    *   name: StringLiteral
-  //    *   sync?: SyncStatement
-  //    *     regex: RegExpLiteral
-  //    *   duration?: DurationStatement
-  //    *     time: NumericLiteral
-  //    *   window?: WindowStatement
-  //    *     before: NumericLiteral
-  //    *     after?: NumericLiteral
-  //    *   jump?: JumpStatement
-  //    *     time: NumericLiteral
-  //    */
-  //   it("timeline entry", async () => {
-  //     const ast = await parseAsync(
-  //       '0.0 "--Reset--" sync / 00:0839:.*is no longer sealed/ duration 5 window 10000 jump 0',
-  //     );
-  //     expect(ast.type).to.equal("Program");
-  //     expect(ast.body.length).to.equal(1);
-  //     const stmt = ast.body[0];
-  //     expect(stmt.type).to.equal("Entry");
-  //     expect(stmt).to.have.nested.property("name.type", "StringLiteral");
-  //     expect(stmt).to.have.nested.property("name.value", "--Reset--");
-  //     expect(stmt).to.have.nested.property("sync.type", "SyncStatement");
-  //     expect(stmt).to.have.nested.property("sync.regex.type", "RegExpLiteral");
-  //     expect(stmt).to.have.nested.property("sync.regex.pattern", " 00:0839:.*is no longer sealed");
-  //     expect(stmt).to.have.nested.property("duration.type", "DurationStatement");
-  //     expect(stmt).to.have.nested.property("duration.time.type", "NumericLiteral");
-  //     expect(stmt).to.have.nested.property("duration.time.value", 5);
-  //     expect(stmt).to.have.nested.property("window.type", "WindowStatement");
-  //     expect(stmt).to.have.nested.property("window.before.type", "NumericLiteral");
-  //     expect(stmt).to.have.nested.property("window.before.value", 10000);
-  //     expect(stmt).to.have.nested.property("jump.type", "JumpStatement");
-  //     expect(stmt).to.have.nested.property("jump.time.type", "NumericLiteral");
-  //     expect(stmt).to.have.nested.property("jump.time.value", 0);
-  //   });
+    #[test]
+    fn test_hideall_statement() {
+        let ast = parse("hideall \"--sync--\"");
+        insta::assert_debug_snapshot!(ast, @r#"
+        Program {
+            defines: [],
+            hide_alls: [
+                HideAllStmt {
+                    name: "--sync--",
+                },
+            ],
+            alert_alls: [],
+            entries: [],
+        }
+        "#);
+    }
 
-  //   it("timeline entry net sync", async () => {
-  //     const ast = await parseAsync('100.0 "test" Ability { id: "1000", name: "name" } window 10');
-  //     expect(ast.type).to.equal("Program");
-  //     expect(ast.body.length).to.equal(1);
-  //     const stmt = ast.body[0];
-  //     expect(stmt.type).to.equal("Entry");
-  //     expect(stmt).to.have.nested.property("name.type", "StringLiteral");
-  //     expect(stmt).to.have.nested.property("name.value", "test");
-  //     expect(stmt).to.have.nested.property("sync.syncType", "Ability");
-  //     expect(stmt).to.have.nested.property("sync.fields.id", "1000");
-  //     expect(stmt).to.have.nested.property("sync.fields.name", "name");
-  //     expect(stmt).to.have.nested.property("window.type", "WindowStatement");
-  //     expect(stmt).to.have.nested.property("window.before.type", "NumericLiteral");
-  //     expect(stmt).to.have.nested.property("window.before.value", 10);
-  //   });
-  // });
+    #[test]
+    #[should_panic = "Unexpected token types: Keyword, NumericLiteral"]
+    fn test_hideall_statement_panic() {
+        parse("hideall 123");
+    }
+
+    #[test]
+    fn test_alert_all_statement() {
+        let ast = parse("alertall \"name\" before 1 sound \"file\"");
+        insta::assert_debug_snapshot!(ast, @r#"
+        Program {
+            defines: [],
+            hide_alls: [],
+            alert_alls: [
+                AlertAllStmt {
+                    name: "name",
+                    before: Some(
+                        Integer(
+                            1,
+                        ),
+                    ),
+                    sound: Some(
+                        "file",
+                    ),
+                },
+            ],
+            entries: [],
+        }
+        "#);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_alert_all_panic_keywords() {
+        parse("alertall \"name\" before sound before 1");
+    }
+
+    #[test]
+    fn test_define_statement() {
+        let ast = parse("define alertsound \"name\" \"file\"");
+        insta::assert_debug_snapshot!(ast, @r#"
+        Program {
+            defines: [
+                DefineStmt {
+                    define_type: AlertSound,
+                    name: "name",
+                    file: "file",
+                },
+            ],
+            hide_alls: [],
+            alert_alls: [],
+            entries: [],
+        }
+        "#);
+    }
+
+    #[test]
+    fn test_timeline_entry() {
+        let ast = parse("0.0 \"--Reset--\" sync / 00:0839:.*is no longer sealed/ duration 5 window 10000 jump 0");
+        insta::assert_debug_snapshot!(ast, @r#"
+        Program {
+            defines: [],
+            hide_alls: [],
+            alert_alls: [],
+            entries: [
+                EntryStmt {
+                    time: Float(
+                        0.0,
+                    ),
+                    name: "--Reset--",
+                    sync: Some(
+                        SyncStmt(
+                            SyncStmt {
+                                regex: " 00:0839:.*is no longer sealed",
+                            },
+                        ),
+                    ),
+                    window: Some(
+                        WindowStmt {
+                            before: Integer(
+                                10000,
+                            ),
+                            after: None,
+                        },
+                    ),
+                    duration: Some(
+                        DurationStmt {
+                            time: Integer(
+                                5,
+                            ),
+                        },
+                    ),
+                    jump: Some(
+                        JumpStmt {
+                            time: Integer(
+                                0,
+                            ),
+                        },
+                    ),
+                },
+            ],
+        }
+        "#);
+    }
+
+    //   it("timeline entry net sync", async () => {
+    //     const ast = await parseAsync('100.0 "test" Ability { id: "1000", name: "name" } window 10');
+    //     expect(ast.type).to.equal("Program");
+    //     expect(ast.body.length).to.equal(1);
+    //     const stmt = ast.body[0];
+    //     expect(stmt.type).to.equal("Entry");
+    //     expect(stmt).to.have.nested.property("name.type", "StringLiteral");
+    //     expect(stmt).to.have.nested.property("name.value", "test");
+    //     expect(stmt).to.have.nested.property("sync.syncType", "Ability");
+    //     expect(stmt).to.have.nested.property("sync.fields.id", "1000");
+    //     expect(stmt).to.have.nested.property("sync.fields.name", "name");
+    //     expect(stmt).to.have.nested.property("window.type", "WindowStatement");
+    //     expect(stmt).to.have.nested.property("window.before.type", "NumericLiteral");
+    //     expect(stmt).to.have.nested.property("window.before.value", 10);
+    //   });
+    // });
+
+    #[test]
+    fn test_timeline_entry_net_sync() {
+        let ast = parse("100.0 \"test\" sync / 00:0839:.*is no longer sealed/ window 10");
+        insta::assert_debug_snapshot!(ast, @r#"
+        Program {
+            defines: [],
+            hide_alls: [],
+            alert_alls: [],
+            entries: [
+                EntryStmt {
+                    time: Float(
+                        100.0,
+                    ),
+                    name: "test",
+                    sync: Some(
+                        SyncStmt(
+                            SyncStmt {
+                                regex: " 00:0839:.*is no longer sealed",
+                            },
+                        ),
+                    ),
+                    window: Some(
+                        WindowStmt {
+                            before: Integer(
+                                10,
+                            ),
+                            after: None,
+                        },
+                    ),
+                    duration: None,
+                    jump: None,
+                },
+            ],
+        }
+        "#);
+    }
 }

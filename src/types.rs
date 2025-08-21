@@ -1,155 +1,102 @@
-// import { SourceLocation } from "./utils/location";
+pub mod semantic_ast {
+    use std::collections::HashMap;
 
-// type CommentBase = {
-//   type: "CommentLine"; // Currently we have line comment only
-//   value: string;
-//   start: number;
-//   end: number;
-//   loc: SourceLocation;
-// };
+    #[derive(Debug, Clone)]
+    pub struct Program {
+        pub defines: Vec<DefineStmt>,
+        pub hide_alls: Vec<HideAllStmt>,
+        pub alert_alls: Vec<AlertAllStmt>,
+        pub entries: Vec<EntryStmt>,
+    }
 
-// export type CommentLine = CommentBase;
+    #[derive(Debug, Clone)]
+    pub enum Statement {
+        Define(DefineStmt),
+        Entry(EntryStmt),
+        AnySync(AnySyncStmt),
+        Sync(SyncStmt),
+        NetSync(NetSyncStmt),
+        Window(WindowStmt),
+        Jump(JumpStmt),
+        Duration(DurationStmt),
+        HideAll(HideAllStmt),
+        AlertAll(AlertAllStmt),
+    }
 
-// export type Comment = CommentLine;
+    #[derive(Debug, Clone)]
+    pub struct EntryStmt {
+        pub time: Time,
+        pub name: String,
+        pub sync: Option<AnySyncStmt>,
+        pub window: Option<WindowStmt>,
+        pub duration: Option<DurationStmt>,
+        pub jump: Option<JumpStmt>,
+    }
 
-// export interface NodeBase {
-//   type: Node["type"];
-//   loc: SourceLocation;
-//   range: [number, number];
-// }
+    #[derive(Debug, Clone)]
+    pub enum AnySyncStmt {
+        SyncStmt(SyncStmt),
+        NetSyncStmt(NetSyncStmt),
+    }
 
-// export type Node =
-//   | Program
-//   | CommentLine
-//   | StringLiteral
-//   | NumericLiteral
-//   | RegExpLiteral
-//   | SyncStatement
-//   | NetSyncStatement
-//   | WindowStatement
-//   | JumpStatement
-//   | DurationStatement
-//   | BeforeStatement
-//   | SoundStatement
-//   | HideAllStatement
-//   | AlertAllStatement
-//   | DefineStatement
-//   | Entry;
+    #[derive(Debug, Clone)]
+    pub struct SyncStmt {
+        pub regex: String,
+    }
 
-// export interface StringLiteral extends NodeBase {
-//   type: "StringLiteral";
-//   value: string;
-//   raw: string;
-// }
+    #[derive(Debug, Clone)]
+    pub struct NetSyncStmt {
+        pub sync_type: String,
+        pub fields: HashMap<String, String>,
+    }
 
-// export interface NumericLiteral extends NodeBase {
-//   type: "NumericLiteral";
-//   value: number;
-//   raw: string;
-// }
+    #[derive(Debug, Clone)]
+    pub struct WindowStmt {
+        pub before: Time,
+        pub after: Option<Time>,
+    }
 
-// export interface RegExpLiteral extends NodeBase {
-//   type: "RegExpLiteral";
-//   pattern: string;
-//   flags: string;
-//   raw: string;
-// }
+    #[derive(Debug, Clone)]
+    pub struct DurationStmt {
+        pub time: Time,
+    }
 
-// export interface SyncStatement extends NodeBase {
-//   type: "SyncStatement";
-//   regex: RegExpLiteral;
-// }
+    #[derive(Debug, Clone)]
+    pub struct JumpStmt {
+        pub time: Time,
+    }
 
-// export interface NetSyncStatement extends NodeBase {
-//   type: "NetSyncStatement";
-//   syncType: string;
-//   fields: Record<string, string | number>;
-// }
+    #[derive(Debug, Clone)]
+    pub struct HideAllStmt {
+        pub name: String,
+    }
 
-// export interface WindowStatement extends NodeBase {
-//   type: "WindowStatement";
-//   before: NumericLiteral;
-//   after?: NumericLiteral;
-// }
+    #[derive(Debug, Clone)]
+    pub struct AlertAllStmt {
+        pub name: String,
+        pub before: Option<Time>,
+        pub sound: Option<String>,
+    }
 
-// export interface JumpStatement extends NodeBase {
-//   type: "JumpStatement";
-//   time: NumericLiteral;
-// }
+    #[derive(Debug, Clone)]
+    pub struct DefineStmt {
+        pub define_type: DefineType,
+        pub name: String,
+        pub file: String,
+    }
 
-// export interface DurationStatement extends NodeBase {
-//   type: "DurationStatement";
-//   time: NumericLiteral;
-// }
+    /// currently only alertsound supported (?)
+    ///
+    /// @see https://github.com/grindingcoil/act_timeline/blob/master/doc/TimelineSyntax.md#%E8%AD%A6%E5%91%8A%E9%9F%B3%E3%81%AE%E5%88%A5%E5%90%8D%E8%A8%AD%E5%AE%9A
+    /// @see https://github.com/grindingcoil/act_timeline/blob/d1c82613dfc9ef5136986cafe0fb96bf42cff3be/src/TimelineLoader.cs#L133
+    #[derive(Debug, Clone)]
+    pub enum DefineType {
+        AlertSound,
+    }
 
-// export interface BeforeStatement extends NodeBase {
-//   type: "BeforeStatement";
-//   time: NumericLiteral;
-// }
-
-// export interface SoundStatement extends NodeBase {
-//   type: "SoundStatement";
-//   file: StringLiteral;
-// }
-
-// export interface HideAllStatement extends NodeBase {
-//   type: "HideAllStatement";
-//   name: StringLiteral;
-// }
-
-// export interface AlertAllStatement extends NodeBase {
-//   type: "AlertAllStatement";
-//   name: StringLiteral;
-//   before?: BeforeStatement;
-//   sound?: SoundStatement;
-// }
-
-// export interface DefineStatement extends NodeBase {
-//   type: "DefineStatement";
-//   /**
-//    * currently only alertsound supported (?)
-//    *
-//    * @see https://github.com/grindingcoil/act_timeline/blob/master/doc/TimelineSyntax.md#%E8%AD%A6%E5%91%8A%E9%9F%B3%E3%81%AE%E5%88%A5%E5%90%8D%E8%A8%AD%E5%AE%9A
-//    * @see https://github.com/grindingcoil/act_timeline/blob/d1c82613dfc9ef5136986cafe0fb96bf42cff3be/src/TimelineLoader.cs#L133
-//    */
-//   defineType: "alertsound";
-//   name: StringLiteral;
-//   file: StringLiteral;
-// }
-
-// export interface Entry extends NodeBase {
-//   type: "Entry";
-//   time: NumericLiteral;
-//   name: StringLiteral;
-//   sync?: SyncStatement | NetSyncStatement;
-//   window?: WindowStatement;
-//   duration?: DurationStatement;
-//   jump?: JumpStatement;
-// }
-
-// export type Literal = StringLiteral | NumericLiteral | RegExpLiteral;
-// export type Statement =
-//   | SyncStatement
-//   | NetSyncStatement
-//   | WindowStatement
-//   | JumpStatement
-//   | DurationStatement
-//   | HideAllStatement
-//   | AlertAllStatement
-//   | DefineStatement;
-
-// export interface Token {
-//   type: string;
-//   loc: SourceLocation;
-//   range: [number, number];
-//   value: string;
-// }
-
-// export interface Program extends NodeBase {
-//   type: "Program";
-//   body: Array<Statement | Entry>;
-//   sourceType: "script" | "module";
-//   sourceFile: string;
-//   tokens: Array<Token>;
-//   comments: Array<Comment>;
-// }
+    #[derive(Debug, Clone)]
+    pub enum Time {
+        Integer(u64),
+        Float(f64),
+    }
+}
