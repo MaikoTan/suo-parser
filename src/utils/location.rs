@@ -1,12 +1,12 @@
 #[derive(Debug, Clone)]
 pub struct Position {
-    pub line: u32,
-    pub column: u32,
-    pub offset: usize,
+    pub line: u16,
+    pub column: u16,
+    pub offset: u32,
 }
 
 impl Position {
-    pub fn new(line: u32, column: u32, offset: usize) -> Self {
+    pub fn new(line: u16, column: u16, offset: u32) -> Self {
         Self {
             line,
             column,

@@ -34,7 +34,7 @@ pub struct Token {
     pub kind: TokenKind,
     pub value: Option<String>,
     pub loc: SourceLocation,
-    pub range: (usize, usize),
+    pub range: (u32, u32),
 }
 
 pub enum Keyword {
@@ -54,9 +54,9 @@ pub enum Keyword {
 
 pub struct Tokenizer<R: Read> {
     reader: BufReader<R>,
-    position: usize,
-    line: u32,
-    column: u32,
+    position: u32,
+    line: u16,
+    column: u16,
 
     pub current_token: Option<Token>,
 }
@@ -86,6 +86,10 @@ impl<R: Read> Tokenizer<R> {
         let mut buffer = vec![0; size];
         self.reader.read_exact(&mut buffer)?;
         Ok(buffer)
+    }
+
+    pub fn has_next_token(&mut self) -> bool {
+        self.current_token.is_some() || self.reader.has_data_left().ok().unwrap()
     }
 
     pub fn peek_token(&mut self) -> Option<Token> {
@@ -211,8 +215,8 @@ impl<R: Read> Tokenizer<R> {
         for keyword in keywords.iter() {
             if self.peek_chars(keyword.len()).unwrap() == keyword.as_bytes() {
                 let start = self.position();
-                self.position += keyword.len();
-                self.column += keyword.len() as u32;
+                self.position += keyword.len() as u32;
+                self.column += keyword.len() as u16;
 
                 let end = self.position();
 
@@ -231,8 +235,8 @@ impl<R: Read> Tokenizer<R> {
         for key in NetSyncLogType::all_keys() {
             if self.peek_chars(key.len()).unwrap() == key.as_bytes() {
                 let start = self.position();
-                self.position += key.len();
-                self.column += key.len() as u32;
+                self.position += key.len() as u32;
+                self.column += key.len() as u16;
 
                 let end = self.position();
 
