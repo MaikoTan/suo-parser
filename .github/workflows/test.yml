@@ -20,6 +20,10 @@ jobs:
           toolchain: nightly
           target: wasm32-unknown-unknown
 
+      - name: Install wasm-pack
+        run: |
+          cargo install wasm-pack --locked
+
       - name: Test
         run: |
           cargo test --all-features

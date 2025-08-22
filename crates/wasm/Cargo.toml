@@ -21,8 +21,5 @@ serde-wasm-bindgen = "0.4"
 # allocator, so it's not enabled by default.
 wee_alloc = { version = "0.4.2", optional = true }
 
-[build-dependencies]
-wasm-pack = "0.13"
-
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = true
