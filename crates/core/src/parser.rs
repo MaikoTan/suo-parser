@@ -171,7 +171,7 @@ impl<R: Read> Parser<R> {
     }
 
     fn parse_define_statement(&mut self) -> Option<Statement> {
-        let token = self.tokenizer.next_token().unwrap(); // keyword define
+        let _token = self.tokenizer.next_token().unwrap(); // keyword define
         let define_type = self.tokenizer.next_token().unwrap(); // identifier (should be "alertsound")
         if define_type.kind != TokenKind::Identifier
             || define_type.value.as_ref() != Some(&"alertsound".to_string())
