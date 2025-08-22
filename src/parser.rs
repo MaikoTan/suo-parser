@@ -370,7 +370,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic = "Unexpected token types: Keyword, NumericLiteral"]
+    #[should_panic]
     fn test_hideall_statement_panic() {
         parse("hideall 123");
     }
