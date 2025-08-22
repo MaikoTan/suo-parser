@@ -1,0 +1,16 @@
+[package]
+name = "suo-parser-napi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+suo-parser-core = { path = "../core" }
+napi = { version = "2", features = ["napi4", "tokio_rt"] }
+napi-derive = "2"
+tokio = { version = "1", features = ["rt", "macros"] }
+
+[build-dependencies]
+napi-build = "1"
