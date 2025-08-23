@@ -266,12 +266,12 @@ impl<R: Read> Tokenizer<R> {
                 }
             }
 
-            return Token {
+            Token {
                 kind: TokenKind::Identifier,
                 value: Some(name),
                 loc: SourceLocation::new(start.clone(), self.position()),
                 range: (start.offset, self.position().offset),
-            };
+            }
         }
     }
 
