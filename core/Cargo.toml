@@ -25,4 +25,4 @@ lto = true
 console_error_panic_hook = "0.1.5"
 
 [dev-dependencies]
-insta = { version = "1.43.1", features = ["yaml"] }
+insta = { workspace = true }

@@ -5,3 +5,6 @@ members = [
 ]
 
 resolver = "2"
+
+[workspace.dependencies]
+insta = { version = "1.43.1", features = ["yaml"] }
