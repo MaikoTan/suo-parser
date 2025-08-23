@@ -1,5 +1,5 @@
 ---
-source: core/src/tokenizer.rs
+source: core/tests/tokenizer.rs
 expression: vec
 ---
 [

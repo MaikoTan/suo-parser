@@ -1,12 +1,12 @@
 ---
-source: core/src/tokenizer.rs
+source: core/tests/tokenizer.rs
 expression: vec
 ---
 [
     Token {
-        kind: Keyword,
+        kind: NumericLiteral,
         value: Some(
-            "sync",
+            "100",
         ),
         loc: SourceLocation {
             start: Position {
@@ -16,35 +16,35 @@ expression: vec
             },
             end: Position {
                 line: 1,
-                column: 5,
-                offset: 4,
+                column: 4,
+                offset: 3,
             },
         },
         range: (
             0,
-            4,
+            3,
         ),
     },
     Token {
-        kind: RegularExpression,
+        kind: StringLiteral,
         value: Some(
-            "regexp",
+            "name",
         ),
         loc: SourceLocation {
             start: Position {
                 line: 1,
-                column: 6,
-                offset: 5,
+                column: 5,
+                offset: 4,
             },
             end: Position {
                 line: 1,
-                column: 14,
-                offset: 13,
+                column: 11,
+                offset: 10,
             },
         },
         range: (
-            5,
-            13,
+            4,
+            10,
         ),
     },
 ]

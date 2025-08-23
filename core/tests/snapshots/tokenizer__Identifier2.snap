@@ -1,12 +1,12 @@
 ---
-source: core/src/tokenizer.rs
+source: core/tests/tokenizer.rs
 expression: vec
 ---
 [
     Token {
-        kind: StringLiteral,
+        kind: Identifier,
         value: Some(
-            "I'm",
+            "identifier",
         ),
         loc: SourceLocation {
             start: Position {
@@ -16,35 +16,35 @@ expression: vec
             },
             end: Position {
                 line: 1,
-                column: 6,
-                offset: 5,
+                column: 11,
+                offset: 10,
             },
         },
         range: (
             0,
-            5,
+            10,
         ),
     },
     Token {
-        kind: StringLiteral,
+        kind: Identifier,
         value: Some(
-            "str\"ing",
+            "identifier",
         ),
         loc: SourceLocation {
             start: Position {
-                line: 1,
-                column: 7,
-                offset: 6,
+                line: 2,
+                column: 1,
+                offset: 11,
             },
             end: Position {
-                line: 1,
-                column: 16,
-                offset: 15,
+                line: 2,
+                column: 11,
+                offset: 21,
             },
         },
         range: (
-            6,
-            15,
+            11,
+            21,
         ),
     },
 ]
