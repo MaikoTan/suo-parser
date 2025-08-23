@@ -10,11 +10,6 @@ repository = "https://github.com/MaikoTan/suo-parser"
 [lib]
 crate-type = ["rlib", "cdylib"]
 
-[profile.release]
-# This makes the compiled code faster and smaller, but it makes compiling slower,
-# so it's only enabled in release mode.
-lto = true
-
 [dependencies]
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
