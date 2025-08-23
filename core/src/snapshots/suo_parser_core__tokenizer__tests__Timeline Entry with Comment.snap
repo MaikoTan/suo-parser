@@ -1,12 +1,12 @@
 ---
-source: src/tokenizer.rs
+source: core/src/tokenizer.rs
 expression: vec
 ---
 [
     Token {
-        kind: Keyword,
+        kind: NumericLiteral,
         value: Some(
-            "jump",
+            "10.0",
         ),
         loc: SourceLocation {
             start: Position {
@@ -26,9 +26,9 @@ expression: vec
         ),
     },
     Token {
-        kind: NumericLiteral,
+        kind: StringLiteral,
         value: Some(
-            "10.0",
+            "name",
         ),
         loc: SourceLocation {
             start: Position {
@@ -38,57 +38,35 @@ expression: vec
             },
             end: Position {
                 line: 1,
-                column: 10,
-                offset: 9,
+                column: 12,
+                offset: 11,
             },
         },
         range: (
             5,
-            9,
+            11,
         ),
     },
     Token {
-        kind: Keyword,
+        kind: Comment,
         value: Some(
-            "jump",
+            "# comment",
         ),
         loc: SourceLocation {
             start: Position {
-                line: 2,
-                column: 1,
-                offset: 10,
+                line: 1,
+                column: 13,
+                offset: 12,
             },
             end: Position {
-                line: 2,
-                column: 5,
-                offset: 14,
+                line: 1,
+                column: 22,
+                offset: 21,
             },
         },
         range: (
-            10,
-            14,
-        ),
-    },
-    Token {
-        kind: NumericLiteral,
-        value: Some(
-            "10",
-        ),
-        loc: SourceLocation {
-            start: Position {
-                line: 2,
-                column: 6,
-                offset: 15,
-            },
-            end: Position {
-                line: 2,
-                column: 8,
-                offset: 17,
-            },
-        },
-        range: (
-            15,
-            17,
+            12,
+            21,
         ),
     },
 ]

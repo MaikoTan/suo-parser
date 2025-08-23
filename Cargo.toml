@@ -1,7 +1,7 @@
 [workspace]
 members = [
-  "crates/core",
-  "crates/napi",
-  "crates/wasm"
+  "core",
+  "binding"
 ]
+
 resolver = "2"
