@@ -1,11 +1,10 @@
-use insta;
 use std::fs::File;
 use suo_parser_core::tokenizer::{Token, Tokenizer};
 
 #[test]
 fn test_tokenizer_read_char() {
     let mut tokenizer: Tokenizer<_> = "100 \"name\" # comment".into();
-    assert_eq!(tokenizer.has_next_token(), true);
+    assert!(tokenizer.has_next_token());
     assert_eq!(tokenizer.peek_chars(3).unwrap(), b"100");
     assert_eq!(tokenizer.read_chars(3).unwrap(), b"100");
     assert_eq!(tokenizer.peek_chars(1).unwrap(), b" ");
@@ -16,7 +15,7 @@ fn test_tokenizer_read_char() {
     assert_eq!(tokenizer.read_chars(1).unwrap(), b" ");
     assert_eq!(tokenizer.peek_chars(9).unwrap(), b"# comment");
     assert_eq!(tokenizer.read_chars(9).unwrap(), b"# comment");
-    assert_eq!(tokenizer.has_next_token(), false);
+    assert!(!tokenizer.has_next_token());
 }
 
 fn all_tokens(input: &str) -> Vec<Token> {
@@ -125,24 +124,21 @@ fn test_tokenizer_full_timeline() {
 #[test]
 fn test_tokenizer_peek_token() {
     let mut tokenizer: Tokenizer<_> = "0 \"test\" sync /regex/".into();
-    let v = {
-        let mut vec = Vec::new();
+    let v = vec![
         // NumericLiteral
-        vec.push(tokenizer.peek_token().unwrap());
-        vec.push(tokenizer.peek_token().unwrap());
-        vec.push(tokenizer.next_token().unwrap());
+        tokenizer.peek_token().unwrap(),
+        tokenizer.peek_token().unwrap(),
+        tokenizer.next_token().unwrap(),
         // StringLiteral
-        vec.push(tokenizer.peek_token().unwrap());
-        vec.push(tokenizer.next_token().unwrap());
+        tokenizer.peek_token().unwrap(),
+        tokenizer.next_token().unwrap(),
         // Keyword
-        vec.push(tokenizer.peek_token().unwrap());
-        vec.push(tokenizer.next_token().unwrap());
+        tokenizer.peek_token().unwrap(),
+        tokenizer.next_token().unwrap(),
         // RegexLiteral
-        vec.push(tokenizer.peek_token().unwrap());
-        vec.push(tokenizer.next_token().unwrap());
-
-        vec
-    };
+        tokenizer.peek_token().unwrap(),
+        tokenizer.next_token().unwrap(),
+    ];
 
     insta::assert_debug_snapshot!("Peek Tokens", v);
 }

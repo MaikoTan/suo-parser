@@ -1,7 +1,6 @@
 use suo_parser_core::parser::Parser;
 use suo_parser_core::{tokenizer::Tokenizer, types::semantic_ast::*};
 
-use insta;
 
 fn parse(input: &str) -> Program {
     let tokenizer: Tokenizer<_> = input.into();
@@ -12,7 +11,6 @@ fn parse(input: &str) -> Program {
 #[test]
 fn test_parser_creation() {
     parse("hideall \"--sync--\"");
-    return ();
 }
 
 #[test]
