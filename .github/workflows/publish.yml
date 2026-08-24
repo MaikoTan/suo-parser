@@ -1,0 +1,39 @@
+name: publish
+
+on:
+  push:
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+# Needed for npm OIDC trusted publishing and provenance attestation:
+# npm exchanges the GitHub OIDC token for an npm token, so no NPM_TOKEN secret
+# is required (see the "trusted publishing" setup on npmjs.com).
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly
+          target: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
+
+      # `prepublishOnly` runs `npm run build` (wasm-pack) before packing.
+      - name: Publish to npm (OIDC)
+        run: npm publish --provenance --access public
