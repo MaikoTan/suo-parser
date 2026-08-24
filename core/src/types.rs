@@ -1,7 +1,7 @@
 pub mod semantic_ast {
-    use std::collections::HashMap;
+    use serde::{Deserialize, Serialize};
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Program {
         pub defines: Vec<DefineStmt>,
         pub hide_alls: Vec<HideAllStmt>,
@@ -9,7 +9,7 @@ pub mod semantic_ast {
         pub entries: Vec<EntryStmt>,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub enum Statement {
         Define(DefineStmt),
         Entry(EntryStmt),
@@ -23,7 +23,7 @@ pub mod semantic_ast {
         AlertAll(AlertAllStmt),
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct EntryStmt {
         pub time: Time,
         pub name: String,
@@ -33,52 +33,53 @@ pub mod semantic_ast {
         pub jump: Option<JumpStmt>,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub enum AnySyncStmt {
         SyncStmt(SyncStmt),
         NetSyncStmt(NetSyncStmt),
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct SyncStmt {
         pub regex: String,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct NetSyncStmt {
         pub sync_type: String,
-        pub fields: HashMap<String, String>,
+        /// Fields in insertion order, as (key, value) pairs.
+        pub fields: Vec<(String, String)>,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct WindowStmt {
         pub before: Time,
         pub after: Option<Time>,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct DurationStmt {
         pub time: Time,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct JumpStmt {
         pub time: Time,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct HideAllStmt {
         pub name: String,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct AlertAllStmt {
         pub name: String,
         pub before: Option<Time>,
         pub sound: Option<String>,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct DefineStmt {
         pub define_type: DefineType,
         pub name: String,
@@ -89,12 +90,12 @@ pub mod semantic_ast {
     ///
     /// @see https://github.com/grindingcoil/act_timeline/blob/master/doc/TimelineSyntax.md#%E8%AD%A6%E5%91%8A%E9%9F%B3%E3%81%AE%E5%88%A5%E5%90%8D%E8%A8%AD%E5%AE%9A
     /// @see https://github.com/grindingcoil/act_timeline/blob/d1c82613dfc9ef5136986cafe0fb96bf42cff3be/src/TimelineLoader.cs#L133
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub enum DefineType {
         AlertSound,
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub enum Time {
         Integer(u64),
         Float(f64),

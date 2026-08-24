@@ -2,6 +2,7 @@ use std::io::Read;
 
 use crate::tokenizer::{TokenKind, Tokenizer};
 use crate::types::semantic_ast::*;
+use crate::utils::log_types::NetSyncLogType;
 
 impl From<String> for Time {
     fn from(value: String) -> Self {
@@ -234,6 +235,9 @@ impl<R: Read> Parser<R> {
                 "jump" => {
                     jump = Some(self.parse_jump_statement()?);
                 }
+                _ if NetSyncLogType::all_keys().contains(&keyword.to_string()) => {
+                    sync = Some(self.parse_net_sync_statement()?);
+                }
                 _ => panic!("Unexpected keyword in entry statement: {}", keyword),
             }
         }
@@ -261,6 +265,61 @@ impl<R: Read> Parser<R> {
 
         Some(AnySyncStmt::SyncStmt(SyncStmt {
             regex: regex_token.value.unwrap(),
+        }))
+    }
+
+    fn parse_net_sync_statement(&mut self) -> Option<AnySyncStmt> {
+        let type_token = self.tokenizer.next_token().unwrap(); // keyword, e.g. "Ability"
+        if type_token.kind != TokenKind::Keyword {
+            panic!("Unexpected token type: {:?}", type_token);
+        }
+
+        let mut fields: Vec<(String, String)> = Vec::new();
+
+        let left_brace = self.tokenizer.next_token().unwrap();
+        if left_brace.kind != TokenKind::Brace || left_brace.value.as_deref() != Some("{") {
+            panic!("Unexpected token: {:?}", left_brace);
+        }
+
+        while self.tokenizer.has_next_token() {
+            let next_token = self.tokenizer.peek_token().unwrap();
+            if next_token.kind == TokenKind::Identifier {
+                let key_token = self.tokenizer.next_token().unwrap();
+                if key_token.kind != TokenKind::Identifier {
+                    panic!("Unexpected token: {:?}", key_token);
+                }
+
+                let colon_token = self.tokenizer.next_token().unwrap();
+                if colon_token.kind != TokenKind::Colon {
+                    panic!("Unexpected token: {:?}", colon_token);
+                }
+
+                let value_token = self.tokenizer.next_token().unwrap();
+                if value_token.kind != TokenKind::StringLiteral
+                    && value_token.kind != TokenKind::NumericLiteral
+                {
+                    panic!("Unexpected token: {:?}", value_token);
+                }
+                fields.push((key_token.value.unwrap(), value_token.value.unwrap()));
+            }
+
+            let right_brace = self.tokenizer.peek_token().unwrap();
+            if right_brace.kind == TokenKind::Brace && right_brace.value.as_deref() == Some("}") {
+                self.tokenizer.next_token();
+                break;
+            }
+            if right_brace.kind == TokenKind::Punctuator
+                && right_brace.value.as_deref() == Some(",")
+            {
+                self.tokenizer.next_token();
+                continue;
+            }
+            panic!("Unexpected token: {:?}", right_brace);
+        }
+
+        Some(AnySyncStmt::NetSyncStmt(NetSyncStmt {
+            sync_type: type_token.value.unwrap(),
+            fields,
         }))
     }
 
@@ -308,7 +367,11 @@ impl<R: Read> Parser<R> {
             panic!("Unexpected token type for time: {:?}", before);
         }
 
-        if self.tokenizer.peek_token().unwrap().kind == TokenKind::Punctuator {
+        if self
+            .tokenizer
+            .peek_token()
+            .is_some_and(|t| t.kind == TokenKind::Punctuator)
+        {
             let comma = self.tokenizer.next_token().unwrap(); // comma
             if comma.kind != TokenKind::Punctuator || comma.value.as_ref() != Some(&",".to_string())
             {

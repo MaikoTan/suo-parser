@@ -1,134 +1,132 @@
-// import { Entry, Program, Statement } from "./types";
+use crate::types::semantic_ast::{AnySyncStmt, EntryStmt, HideAllStmt, Program, Time};
 
-// export interface GeneratorOptions {
-//   target?: "cactbot";
-// }
+/// Generate timeline text from a parsed [Program].
+pub struct Generator {
+    ast: Program,
+}
 
-// export class Generator {
-//   ast: Program;
-//   options: Required<GeneratorOptions>;
+impl Generator {
+    pub fn new(ast: Program) -> Self {
+        Self { ast }
+    }
 
-//   constructor(ast: Program, options: GeneratorOptions = {}) {
-//     this.ast = ast;
+    pub fn generate(&self) -> String {
+        let mut lines: Vec<String> = Vec::new();
 
-//     this.options = {
-//       target: "cactbot",
-//       ...options,
-//     };
-//   }
+        for hide_all in &self.ast.hide_alls {
+            lines.push(self.generate_statement(hide_all));
+        }
+        for entry in &self.ast.entries {
+            lines.push(self.generate_entry(entry));
+        }
 
-//   generate(): string {
-//     if (this.ast.type !== "Program" || !this.ast.body) {
-//       throw new Error("Invalid AST");
-//     }
+        lines.join("\n")
+    }
 
-//     return this.generateBody(this.ast.body);
-//   }
+    fn generate_statement(&self, stmt: &HideAllStmt) -> String {
+        let name = escape_string(&stmt.name);
+        format!("hideall \"{}\"", name)
+    }
 
-//   generateBody(body: Array<Statement | Entry>): string {
-//     const ret: string[] = [];
-//     for (const stmt of body) {
-//       if (stmt.type === "Entry") {
-//         ret.push(this.generateEntry(stmt));
-//       } else {
-//         ret.push(this.generateStatement(stmt));
-//       }
-//     }
-//     return ret.join("\n");
-//   }
+    fn generate_entry(&self, stmt: &EntryStmt) -> String {
+        let time = format_time(&stmt.time);
+        let name = escape_string(&stmt.name);
+        let mut ret = format!("{} \"{}\"", time, name);
 
-//   generateEntry(stmt: Entry): string {
-//     const time = stmt.time.value.toFixed(1); // time should be a float with 1 digit
-//     const name = this.escapeString(stmt.name.value);
-//     let ret = `${time} "${name}"`;
-//     if (stmt.sync && stmt.sync.type === "SyncStatement") {
-//       const regex = stmt.sync.regex.pattern.replace(/\\/g, "\\\\").replace(/(?<!\\)\//g, "\\/");
-//       ret += ` sync /${regex}/`;
-//     }
-//     if (stmt.sync && stmt.sync.type === "NetSyncStatement") {
-//       ret += ` ${stmt.sync.syncType} { ${Object.entries(stmt.sync.fields)
-//         .map(([k, v]) => k + ": " + (typeof v === "string" ? '"' + v + '"' : v))
-//         .join(", ")} }`;
-//     }
-//     if (stmt.duration) {
-//       const duration = this.simplifyNum(stmt.duration.time.value);
-//       ret += ` duration ${duration}`;
-//     }
-//     if (stmt.window) {
-//       const before = stmt.window.before.value;
-//       const after = stmt.window.after?.value;
-//       if (after && before !== after) {
-//         ret += ` window ${this.simplifyNum(before)},${this.simplifyNum(after)}`;
-//       } else {
-//         ret += ` window ${this.simplifyNum(before)}`;
-//       }
-//     }
-//     if (stmt.jump) {
-//       const jump = stmt.jump.time.value;
-//       ret += ` jump ${this.simplifyNum(jump)}`;
-//     }
+        if let Some(sync) = &stmt.sync {
+            match sync {
+                AnySyncStmt::SyncStmt(s) => {
+                    let regex = escape_regex(&s.regex);
+                    ret.push_str(&format!(" sync /{}/", regex));
+                }
+                AnySyncStmt::NetSyncStmt(n) => {
+                    let fields = n
+                        .fields
+                        .iter()
+                        .map(|(key, value)| format!("{}: \"{}\"", key, value))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    ret.push_str(&format!(" {} {{ {} }}", n.sync_type, fields));
+                }
+            }
+        }
 
-//     return ret;
-//   }
+        if let Some(duration) = &stmt.duration {
+            ret.push_str(&format!(" duration {}", simplify_num(&duration.time)));
+        }
 
-//   generateStatement(stmt: Statement): string {
-//     switch (stmt.type) {
-//       case "HideAllStatement":
-//         const name = this.escapeString(stmt.name.value);
-//         return `hideall "${name}"`;
-//       default:
-//         throw new Error(`Unsupported statement type: ${stmt.type}`);
-//     }
-//   }
+        if let Some(window) = &stmt.window {
+            let before = simplify_num(&window.before);
+            if let Some(after) = &window.after {
+                if !times_equal(&window.before, after) {
+                    ret.push_str(&format!(" window {},{}", before, simplify_num(after)));
+                } else {
+                    ret.push_str(&format!(" window {}", before));
+                }
+            } else {
+                ret.push_str(&format!(" window {}", before));
+            }
+        }
 
-//   escapeString(str: string): string {
-//     return str.replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
-//   }
+        if let Some(jump) = &stmt.jump {
+            ret.push_str(&format!(" jump {}", simplify_num(&jump.time)));
+        }
 
-//   simplifyNum(num: number): string {
-//     if (Number.isInteger(num)) {
-//       return num.toString();
-//     }
-//     return num.toFixed(1);
-//   }
-// }
+        ret
+    }
+}
 
-#[cfg(test)]
-mod tests {
-    // import { expect } from "chai";
-    // import { generateAsync, parseAsync, transformAsync } from "../src";
+/// Formats an entry time like JS toFixed(1): always one decimal digit.
+fn format_time(time: &Time) -> String {
+    match time {
+        Time::Integer(value) => format!("{}.0", value),
+        Time::Float(value) => format!("{:.1}", value),
+    }
+}
 
-    // describe("Generator", () => {
-    //   it("should generate simple timeline entry", async () => {
-    //     const timelineText = '0.0 "--Reset--" sync / 00:0839:.*is no longer sealed/ duration 5 window 10000 jump 0';
-    //     const ast = await parseAsync(timelineText);
-    //     const timeline = await generateAsync(ast);
-    //     expect(timeline).to.equal(timelineText);
-    //   });
+/// Formats a statement time like JS simplifyNum: integers without decimals,
+/// floats with exactly one decimal digit.
+fn simplify_num(time: &Time) -> String {
+    match time {
+        Time::Integer(value) => value.to_string(),
+        Time::Float(value) => format!("{:.1}", value),
+    }
+}
 
-    //   it("should generate hideall statement", async () => {
-    //     const timelineText = 'hideall "--sync--"';
-    //     const ast = await parseAsync(timelineText);
-    //     const timeline = await generateAsync(ast);
-    //     expect(timeline).to.equal(timelineText);
-    //   });
+fn times_equal(a: &Time, b: &Time) -> bool {
+    match (a, b) {
+        (Time::Integer(x), Time::Integer(y)) => x == y,
+        (Time::Float(x), Time::Float(y)) => x == y,
+        (Time::Integer(x), Time::Float(y)) => *x as f64 == *y,
+        (Time::Float(x), Time::Integer(y)) => *x == *y as f64,
+    }
+}
 
-    //   it("should transform timeline", async () => {
-    //     const timelineText = '0.0 "--Reset--" sync / 00:0839:.*is no longer sealed/ duration 5 window 10000 jump 0';
-    //     const timeline = await transformAsync(timelineText);
-    //     expect(timeline).to.equal(timelineText);
-    //   });
+/// Escapes a string literal body, mirroring the original TypeScript
+/// Generator#escapeString behaviour (replaces the first occurrence of each
+/// special character, in order).
+fn escape_string(input: &str) -> String {
+    let mut ret = input.to_string();
+    for (from, to) in [('"', "\\\""), ('\n', "\\n"), ('\r', "\\r"), ('\t', "\\t")] {
+        if let Some(pos) = ret.find(from) {
+            ret.replace_range(pos..pos + from.len_utf8(), to);
+        }
+    }
+    ret
+}
 
-    //   it("should transform timeline with net sync", async () => {
-    //     const timelineText = '0.0 "name" Ability { id: "1000", name: "name" } window 10';
-    //     const timeline = await transformAsync(timelineText);
-    //     expect(timeline).to.equal(timelineText);
-    //   });
-
-    //   it("should transform hideall statement", async () => {
-    //     const timelineText = 'hideall "--sync--"';
-    //     const timeline = await transformAsync(timelineText);
-    //     expect(timeline).to.equal(timelineText);
-    //   });
-    // });
+/// Escapes a regular expression body: first all backslashes are doubled, then
+/// every slash that is not already escaped is prefixed with a backslash.
+fn escape_regex(input: &str) -> String {
+    let doubled = input.replace('\\', "\\\\");
+    let mut out = String::with_capacity(doubled.len());
+    let mut prev_backslash = false;
+    for c in doubled.chars() {
+        if c == '/' && !prev_backslash {
+            out.push('\\');
+        }
+        out.push(c);
+        prev_backslash = c == '\\';
+    }
+    out
 }
