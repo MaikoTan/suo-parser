@@ -37,7 +37,10 @@ impl<R: Read> Parser<R> {
 
 impl<R: Read> Parser<R> {
     pub fn parse(&mut self) -> Program {
-        while self.tokenizer.has_next_token() {
+        // Loop on `peek_token` rather than `has_next_token`: the latter reports
+        // true for trailing whitespace, which would make `next_token` return
+        // `None` (skip_whitespace consumes the tail) and panic below.
+        while self.tokenizer.peek_token().is_some() {
             let stmt = self.parse_statement().unwrap();
             match stmt {
                 Statement::Define(DefineStmt {

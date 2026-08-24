@@ -9,6 +9,13 @@ use suo_parser_core::tokenizer::Tokenizer;
 use suo_parser_core::types::semantic_ast::Program;
 use wasm_bindgen::prelude::*;
 
+/// Install the panic hook so Rust panics print a readable message to the JS
+/// console instead of a bare `unreachable` trap.
+#[wasm_bindgen(start)]
+pub fn init() {
+    console_error_panic_hook::set_once();
+}
+
 /// Parse a timeline string into a JSON-serializable [Program].
 #[wasm_bindgen]
 pub fn parse(input: &str) -> Result<JsValue, JsValue> {
