@@ -16,3 +16,13 @@ dist/
 # Added by cargo
 
 /target
+
+# Local dev caches (sandbox-local nix/rustup/cargo homes)
+/.cache
+/.nix-cache
+/.rustup
+/.cargo
+
+# wasm-pack output
+/wasm/pkg
+/wasm/target
