@@ -28,6 +28,10 @@ jobs:
         run: |
           cargo test --all-features
 
+      - name: Build WASM package
+        run: |
+          wasm-pack build wasm --target nodejs
+
   # Check formatting with rustfmt
   formatting:
     name: cargo fmt

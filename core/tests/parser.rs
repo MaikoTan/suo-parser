@@ -1,7 +1,6 @@
 use suo_parser_core::parser::Parser;
 use suo_parser_core::{tokenizer::Tokenizer, types::semantic_ast::*};
 
-
 fn parse(input: &str) -> Program {
     let tokenizer: Tokenizer<_> = input.into();
     let mut parser = Parser::new(tokenizer);
@@ -156,7 +155,7 @@ fn test_timeline_entry() {
 
 #[test]
 fn test_timeline_entry_net_sync() {
-    let ast = parse("100.0 \"test\" sync / 00:0839:.*is no longer sealed/ window 10");
+    let ast = parse("100.0 \"test\" Ability { id: \"1000\", name: \"name\" } window 10");
     insta::assert_debug_snapshot!(ast, @r#"
         Program {
             defines: [],
@@ -169,9 +168,19 @@ fn test_timeline_entry_net_sync() {
                     ),
                     name: "test",
                     sync: Some(
-                        SyncStmt(
-                            SyncStmt {
-                                regex: " 00:0839:.*is no longer sealed",
+                        NetSyncStmt(
+                            NetSyncStmt {
+                                sync_type: "Ability",
+                                fields: [
+                                    (
+                                        "id",
+                                        "1000",
+                                    ),
+                                    (
+                                        "name",
+                                        "name",
+                                    ),
+                                ],
                             },
                         ),
                     ),
