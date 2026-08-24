@@ -7,10 +7,13 @@ yarn-error.log*
 # VSCode
 .vscode/
 
-# Build
-dist/
-/bin/suo.js
+# Build (wasm-pack output)
+/pkg
+/dist
 /suo-parser-*.tgz
+
+# npm cache
+/.npm-cache
 
 
 # Added by cargo

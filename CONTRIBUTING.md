@@ -43,7 +43,14 @@ Before contributing, ensure you have the following tools installed:
   ```sh
   wasm-pack build wasm --target nodejs
   ```
-- A native CLI binary is built from `core/src/bin/suo.rs`:
+- The npm package `suo-parser` bundles the WASM build plus a `bin/suo.js` CLI entry.
+  Build it (outputs to `pkg/`) with:
+  ```sh
+  npm run build
+  ```
+  After `npm publish`, users can run `npx suo-parser timeline.txt`.
+- A native CLI binary is also available from `core/src/bin/suo.rs` for users who prefer a
+  standalone executable:
   ```sh
   cargo build --release --bin suo
   ```
