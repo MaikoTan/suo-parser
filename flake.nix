@@ -30,12 +30,8 @@
               cargo-insta
               wasm-pack
 
-              # TOML formatting (used by the binding package)
+              # TOML formatting
               taplo
-
-              # Node tooling (for the napi-rs binding and its JS tests)
-              nodejs
-              yarn
             ];
 
             shellHook = ''

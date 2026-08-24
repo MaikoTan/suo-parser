@@ -30,10 +30,6 @@ Before contributing, ensure you have the following tools installed:
   ```sh
   cargo test
   ```
-- To test JavaScript code in the `binding/` folder, navigate to the folder and run:
-  ```sh
-  yarn test
-  ```
 
 ## Pull Requests and Commit Messages
 
@@ -42,4 +38,12 @@ Before contributing, ensure you have the following tools installed:
 
 ## Project Notes
 
-- This project includes [**NAPI-RS**](https://napi.rs/), a framework for building native Node.js modules in Rust. Familiarity with NAPI-RS is helpful when working on bindings.
+- The parser is written in Rust and published to crates.io as `suo-parser-core`.
+- WASM bindings (for Node/browser) live in the `wasm/` crate and are built with `wasm-pack`:
+  ```sh
+  wasm-pack build wasm --target nodejs
+  ```
+- A native CLI binary is built from `core/src/bin/suo.rs`:
+  ```sh
+  cargo build --release --bin suo
+  ```

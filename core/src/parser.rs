@@ -238,7 +238,8 @@ impl<R: Read> Parser<R> {
                 _ if NetSyncLogType::all_keys().contains(&keyword.to_string()) => {
                     sync = Some(self.parse_net_sync_statement()?);
                 }
-                _ => panic!("Unexpected keyword in entry statement: {}", keyword),
+                // Any other keyword (e.g. `hideall`) starts a new top-level statement.
+                _ => break,
             }
         }
 
