@@ -199,3 +199,92 @@ fn test_timeline_entry_net_sync() {
         }
         "#);
 }
+
+// A full timeline mixing multiple statement types.
+#[test]
+fn test_multiple_statements() {
+    let ast = parse(
+        "hideall \"--sync--\"\n0.0 \"--Reset--\" sync / 00:0839:.*is no longer sealed/ duration 5 window 10000 jump 0\n100.0 \"test\" Ability { id: \"1000\", name: \"name\" } window 10",
+    );
+    insta::assert_debug_snapshot!(ast, @r#"
+        Program {
+            defines: [],
+            hide_alls: [
+                HideAllStmt {
+                    name: "--sync--",
+                },
+            ],
+            alert_alls: [],
+            entries: [
+                EntryStmt {
+                    time: Float(
+                        0.0,
+                    ),
+                    name: "--Reset--",
+                    sync: Some(
+                        SyncStmt(
+                            SyncStmt {
+                                regex: " 00:0839:.*is no longer sealed",
+                            },
+                        ),
+                    ),
+                    window: Some(
+                        WindowStmt {
+                            before: Integer(
+                                10000,
+                            ),
+                            after: None,
+                        },
+                    ),
+                    duration: Some(
+                        DurationStmt {
+                            time: Integer(
+                                5,
+                            ),
+                        },
+                    ),
+                    jump: Some(
+                        JumpStmt {
+                            time: Integer(
+                                0,
+                            ),
+                        },
+                    ),
+                },
+                EntryStmt {
+                    time: Float(
+                        100.0,
+                    ),
+                    name: "test",
+                    sync: Some(
+                        NetSyncStmt(
+                            NetSyncStmt {
+                                sync_type: "Ability",
+                                fields: [
+                                    (
+                                        "id",
+                                        "1000",
+                                    ),
+                                    (
+                                        "name",
+                                        "name",
+                                    ),
+                                ],
+                            },
+                        ),
+                    ),
+                    window: Some(
+                        WindowStmt {
+                            before: Integer(
+                                10,
+                            ),
+                            after: None,
+                        },
+                    ),
+                    duration: None,
+                    jump: None,
+                },
+            ],
+        }
+        "#);
+}
