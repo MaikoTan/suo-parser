@@ -1,57 +1,38 @@
 {
   "name": "suo-parser",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A timeline parser for FFXIV/ACT plugins",
-  "main": "dist/index.js",
-  "typings": "dist/index.d.ts",
+  "main": "pkg/suo_parser_wasm.js",
+  "types": "pkg/suo_parser_wasm.d.ts",
   "bin": {
-    "suo": "bin/suo.js"
+    "suo-parser": "bin/suo.js"
   },
-  "files": [
-    "dist",
-    "bin/*.js"
-  ],
   "author": {
     "name": "Maiko Tan",
     "email": "maiko.tan.coding@gmail.com",
     "url": "https://github.com/MaikoTan"
   },
   "repository": {
-    "type": "git+https",
+    "type": "git",
     "url": "https://github.com/MaikoTan/suo-parser"
   },
   "license": "MIT",
+  "keywords": [
+    "ffxiv",
+    "act",
+    "timeline",
+    "parser",
+    "wasm"
+  ],
+  "files": [
+    "pkg/",
+    "bin/"
+  ],
   "scripts": {
-    "build": "tsc && tsc -p ./bin",
-    "test": "mocha -r ts-node/register --extension .spec.ts test",
-    "prettier": "prettier --write 'src/**/*.ts' 'bin/**/*' 'test/**/*.ts' '*.json'",
-    "pretest": "yarn run prettier",
-    "prepack": "rm -rf dist && yarn run prettier && yarn run build"
-  },
-  "devDependencies": {
-    "@babel/types": "^7.15.0",
-    "@types/chai": "^4.2.21",
-    "@types/mocha": "^9.0.0",
-    "@types/node": "^16.6.1",
-    "@typescript-eslint/eslint-plugin": "^4.29.2",
-    "@typescript-eslint/parser": "^4.29.2",
-    "chai": "^4.3.4",
-    "eslint": "^7.32.0",
-    "mocha": "^9.0.3",
-    "prettier": "^2.3.2",
-    "ts-node": "^10.2.0",
-    "typescript": "^4.3.5"
+    "build": "wasm-pack build wasm --target nodejs --out-dir ../pkg && rm -f pkg/.gitignore",
+    "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=12.0.0"
-  },
-  "prettier": {
-    "printWidth": 120,
-    "tabWidth": 2,
-    "semi": true,
-    "singleQuote": false,
-    "trailingComma": "all",
-    "bracketSpacing": true,
-    "arrowParens": "always"
   }
 }
