@@ -1,0 +1,72 @@
+---
+source: core/tests/tokenizer.rs
+expression: vec
+---
+[
+    Token {
+        kind: NumericLiteral,
+        value: Some(
+            "10.0",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 1,
+                offset: 0,
+            },
+            end: Position {
+                line: 1,
+                column: 5,
+                offset: 4,
+            },
+        },
+        range: (
+            0,
+            4,
+        ),
+    },
+    Token {
+        kind: StringLiteral,
+        value: Some(
+            "name",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 6,
+                offset: 5,
+            },
+            end: Position {
+                line: 1,
+                column: 12,
+                offset: 11,
+            },
+        },
+        range: (
+            5,
+            11,
+        ),
+    },
+    Token {
+        kind: Comment,
+        value: Some(
+            "# comment",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 13,
+                offset: 12,
+            },
+            end: Position {
+                line: 1,
+                column: 22,
+                offset: 21,
+            },
+        },
+        range: (
+            12,
+            21,
+        ),
+    },
+]

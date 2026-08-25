@@ -1,0 +1,14 @@
+[workspace]
+members = [
+  "core",
+  "wasm"
+]
+
+resolver = "2"
+
+[workspace.dependencies]
+insta = { version = "1.43.1", features = ["yaml"] }
+
+[profile.release]
+lto = true
+strip = "symbols"

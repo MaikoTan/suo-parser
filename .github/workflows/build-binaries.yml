@@ -1,0 +1,106 @@
+name: Build Binaries
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version string without 'v' prefix (e.g., '0.3.0')"
+        required: true
+        type: string
+    outputs:
+      artifacts:
+        description: "JSON array of artifact names"
+        value: ${{ jobs.collect.outputs.artifacts }}
+
+jobs:
+  build:
+    name: Build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            ext: tar.xz
+            archive_cmd: tar -cJf
+            binary_name: suo
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            ext: tar.xz
+            archive_cmd: tar -cJf
+            binary_name: suo
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            ext: zip
+            archive_cmd: zip
+            binary_name: suo
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            ext: zip
+            archive_cmd: zip
+            binary_name: suo
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: zip
+            archive_cmd: zip
+            binary_name: suo.exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly
+          target: ${{ matrix.target }}
+
+      - name: Build binary (release)
+        run: cargo build --release --bin suo --target ${{ matrix.target }}
+
+      - name: Package binary
+        id: package
+        run: |
+          VERSION="${{ inputs.version }}"
+          TARGET="${{ matrix.target }}"
+          EXT="${{ matrix.ext }}"
+          BINARY="${{ matrix.binary_name }}"
+          ARCHIVE="suo-parser-${{ inputs.version }}-${TARGET}.${EXT}"
+          BIN_PATH="target/${TARGET}/release/${BINARY}"
+
+          mkdir -p artifacts
+
+          if [ "${{ matrix.ext }}" = "tar.xz" ]; then
+            tar -cJf "artifacts/${ARCHIVE}" -C "$(dirname "${BIN_PATH}")" "$(basename "${BIN_PATH}")"
+          else
+            (cd "$(dirname "${BIN_PATH}")" && zip -q "../artifacts/${ARCHIVE}" "$(basename "${BIN_PATH}")")
+          fi
+
+          echo "artifact=${ARCHIVE}" >> $GITHUB_OUTPUT
+
+      - name: Upload binary archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.artifact }}
+          path: artifacts/
+          retention-days: 1
+
+    outputs:
+      artifact: ${{ steps.package.outputs.artifact }}
+
+  collect:
+    name: Collect artifact names
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect artifact names
+        id: collect
+        run: |
+          ARTIFACTS='['
+          for dep in ${{ needs.build.outputs.artifact }}; do
+            ARTIFACTS="${ARTIFACTS}\"${dep}\","
+          done
+          ARTIFACTS="${ARTIFACTS%,}]"
+          echo "artifacts=${ARTIFACTS}" >> $GITHUB_OUTPUT
+    outputs:
+      artifacts: ${{ steps.collect.outputs.artifacts }}

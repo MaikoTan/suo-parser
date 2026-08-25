@@ -1,0 +1,138 @@
+---
+source: core/tests/tokenizer.rs
+expression: vec
+---
+[
+    Token {
+        kind: Keyword,
+        value: Some(
+            "window",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 1,
+                offset: 0,
+            },
+            end: Position {
+                line: 1,
+                column: 7,
+                offset: 6,
+            },
+        },
+        range: (
+            0,
+            6,
+        ),
+    },
+    Token {
+        kind: NumericLiteral,
+        value: Some(
+            "10.0",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 8,
+                offset: 7,
+            },
+            end: Position {
+                line: 1,
+                column: 12,
+                offset: 11,
+            },
+        },
+        range: (
+            7,
+            11,
+        ),
+    },
+    Token {
+        kind: Keyword,
+        value: Some(
+            "window",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 2,
+                column: 1,
+                offset: 12,
+            },
+            end: Position {
+                line: 2,
+                column: 7,
+                offset: 18,
+            },
+        },
+        range: (
+            12,
+            18,
+        ),
+    },
+    Token {
+        kind: NumericLiteral,
+        value: Some(
+            "1",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 2,
+                column: 8,
+                offset: 19,
+            },
+            end: Position {
+                line: 2,
+                column: 9,
+                offset: 20,
+            },
+        },
+        range: (
+            19,
+            20,
+        ),
+    },
+    Token {
+        kind: Punctuator,
+        value: Some(
+            ",",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 2,
+                column: 9,
+                offset: 20,
+            },
+            end: Position {
+                line: 2,
+                column: 10,
+                offset: 21,
+            },
+        },
+        range: (
+            20,
+            21,
+        ),
+    },
+    Token {
+        kind: NumericLiteral,
+        value: Some(
+            "1.0",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 2,
+                column: 10,
+                offset: 21,
+            },
+            end: Position {
+                line: 2,
+                column: 13,
+                offset: 24,
+            },
+        },
+        range: (
+            21,
+            24,
+        ),
+    },
+]

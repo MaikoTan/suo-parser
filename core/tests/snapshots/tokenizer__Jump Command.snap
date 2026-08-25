@@ -1,0 +1,94 @@
+---
+source: core/tests/tokenizer.rs
+expression: vec
+---
+[
+    Token {
+        kind: Keyword,
+        value: Some(
+            "jump",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 1,
+                offset: 0,
+            },
+            end: Position {
+                line: 1,
+                column: 5,
+                offset: 4,
+            },
+        },
+        range: (
+            0,
+            4,
+        ),
+    },
+    Token {
+        kind: NumericLiteral,
+        value: Some(
+            "10.0",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 6,
+                offset: 5,
+            },
+            end: Position {
+                line: 1,
+                column: 10,
+                offset: 9,
+            },
+        },
+        range: (
+            5,
+            9,
+        ),
+    },
+    Token {
+        kind: Keyword,
+        value: Some(
+            "jump",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 2,
+                column: 1,
+                offset: 10,
+            },
+            end: Position {
+                line: 2,
+                column: 5,
+                offset: 14,
+            },
+        },
+        range: (
+            10,
+            14,
+        ),
+    },
+    Token {
+        kind: NumericLiteral,
+        value: Some(
+            "10",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 2,
+                column: 6,
+                offset: 15,
+            },
+            end: Position {
+                line: 2,
+                column: 8,
+                offset: 17,
+            },
+        },
+        range: (
+            15,
+            17,
+        ),
+    },
+]

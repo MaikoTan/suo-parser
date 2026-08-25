@@ -1,0 +1,17 @@
+[package]
+name = "suo-parser-core"
+version = "0.2.0"
+edition = "2021"
+description = "A timeline parser for FFXIV/ACT plugins"
+authors = ["Maiko Tan <maiko.tan.coding@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/MaikoTan/suo-parser"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+insta = { workspace = true }

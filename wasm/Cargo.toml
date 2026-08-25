@@ -1,0 +1,20 @@
+[package]
+name = "suo-parser-wasm"
+version = "0.2.0"
+edition = "2021"
+description = "A timeline parser for FFXIV/ACT plugins (WASM bindings)"
+authors = ["Maiko Tan <maiko.tan.coding@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/MaikoTan/suo-parser"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+suo-parser-core = { path = "../core" }
+console_error_panic_hook = "0.1.7"
+serde-wasm-bindgen = "0.6"
+wasm-bindgen = "0.2"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
