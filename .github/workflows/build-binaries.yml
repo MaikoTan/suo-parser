@@ -1,0 +1,87 @@
+name: Build Binaries
+
+# Reusable workflow: builds the native CLI binary for all supported platforms.
+# Called by publish.yml (or manually via workflow_dispatch).
+
+on:
+  workflow_call:
+    outputs:
+      binaries:
+        description: "JSON array of binary artifact names and paths"
+        value: ${{ jobs.build.outputs.binaries }}
+    secrets:
+      # Optional: if you need to sign or do something extra
+      # SOME_SECRET:
+      #   required: false
+
+jobs:
+  build:
+    name: Build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary_name: suo-parser
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            binary_name: suo-parser-aarch64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            binary_name: suo-parser-x86_64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            binary_name: suo-parser-aarch64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_name: suo-parser.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly
+          target: ${{ matrix.target }}
+
+      - name: Build binary (release)
+        run: cargo build --release --bin suo --target ${{ matrix.target }}
+
+      - name: Prepare artifact
+        run: |
+          BIN_PATH=target/${{ matrix.target }}/release/${{ matrix.binary_name }}
+          ARTIFACT_NAME=suo-parser-${{ matrix.target }}
+          mkdir -p artifacts
+          cp "$BIN_PATH" "artifacts/$ARTIFACT_NAME${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }}
+          echo "artifact=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+        id: artifact
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.artifact }}
+          path: artifacts/
+          retention-days: 1
+
+    outputs:
+      artifact: ${{ steps.artifact.outputs.artifact }}
+
+  # Collect all artifact names for the caller
+  collect:
+    name: Collect artifacts
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect artifact names
+        id: collect
+        run: |
+          ARTIFACTS='['
+          for dep in ${{ needs.build.outputs.artifact }}; do
+            ARTIFACTS="$ARTIFACTS\"$dep\","
+          done
+          ARTIFACTS="${ARTIFACTS%,}]"
+          echo "binaries=$ARTIFACTS" >> $GITHUB_OUTPUT
+    outputs:
+      binaries: ${{ steps.collect.outputs.binaries }}

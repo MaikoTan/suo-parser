@@ -5,17 +5,23 @@ on:
     tags: [ "v*" ]
   workflow_dispatch:
 
-# Needed for npm OIDC trusted publishing and provenance attestation:
+# Needed for npm OIDC trusted publishing, provenance, and GitHub Releases:
 # npm exchanges the GitHub OIDC token for an npm token, so no NPM_TOKEN secret
 # is required (see the "trusted publishing" setup on npmjs.com).
+# GitHub Release upload needs `contents: write`.
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
-  publish:
-    name: publish to npm
+  build-binaries:
+    name: Build native binaries for all platforms
+    uses: ./.github/workflows/build-binaries.yml
+
+  publish-npm:
+    name: Publish to npm
     runs-on: ubuntu-latest
+    needs: build-binaries
     steps:
       - uses: actions/checkout@v4
 
@@ -29,6 +35,7 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: nightly
+        # wasm target needed for npm package (wasm-pack)
           target: wasm32-unknown-unknown
 
       - name: Install wasm-pack
@@ -37,3 +44,27 @@ jobs:
       # `prepublishOnly` runs `npm run build` (wasm-pack) before packing.
       - name: Publish to npm (OIDC)
         run: npm publish --provenance --access public
+
+  release:
+    name: Create GitHub Release with binaries
+    runs-on: ubuntu-latest
+    needs: build-binaries
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: suo-parser-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
