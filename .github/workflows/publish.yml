@@ -4,11 +4,16 @@ on:
   push:
     tags: [ "v*" ]
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version string without 'v' prefix (e.g., '0.3.0')"
+        required: false
+        type: string
 
-# Needed for npm OIDC trusted publishing, provenance, and GitHub Releases:
+# Needed for npm OIDC trusted publishing, provenance attestation, and GitHub Releases:
 # npm exchanges the GitHub OIDC token for an npm token, so no NPM_TOKEN secret
 # is required (see the "trusted publishing" setup on npmjs.com).
-# GitHub Release upload needs `contents: write`.
+# GitHub Release upload needs 'contents: write'.
 permissions:
   contents: write
   id-token: write
@@ -17,6 +22,8 @@ jobs:
   build-binaries:
     name: Build native binaries for all platforms
     uses: ./.github/workflows/build-binaries.yml
+    with:
+      version: ${{ github.ref_name == 'refs/tags/v*' && github.ref_name || inputs.version || github.ref_name }}
 
   publish-npm:
     name: Publish to npm
@@ -35,13 +42,13 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: nightly
-        # wasm target needed for npm package (wasm-pack)
+          # wasm target needed for npm package (wasm-pack)
           target: wasm32-unknown-unknown
 
       - name: Install wasm-pack
         run: cargo install wasm-pack --locked
 
-      # `prepublishOnly` runs `npm run build` (wasm-pack) before packing.
+      # 'prepublishOnly' runs 'npm run build' (wasm-pack) before packing.
       - name: Publish to npm (OIDC)
         run: npm publish --provenance --access public
 
