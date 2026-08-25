@@ -3,7 +3,7 @@ use std::io::{BufRead, BufReader, Read};
 use super::utils::location::{Position, SourceLocation};
 use super::utils::log_types::NetSyncLogType;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum TokenKind {
     /// Including keywords, NetSyncLogType variants
     Keyword,
@@ -29,7 +29,7 @@ pub enum TokenKind {
     Unknown,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Token {
     pub kind: TokenKind,
     pub value: Option<String>,
@@ -37,6 +37,7 @@ pub struct Token {
     pub range: (u32, u32),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Keyword {
     Sync,
     Window,

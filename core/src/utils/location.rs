@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Position {
     pub line: u16,
     pub column: u16,
@@ -15,7 +15,7 @@ impl Position {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SourceLocation {
     pub start: Position,
     pub end: Position,
