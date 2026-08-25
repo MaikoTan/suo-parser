@@ -1,18 +1,16 @@
 name: Build Binaries
 
-# Reusable workflow: builds the native CLI binary for all supported platforms.
-# Called by publish.yml (or manually via workflow_dispatch).
-
 on:
   workflow_call:
+    inputs:
+      version:
+        description: "Version string without 'v' prefix (e.g., '0.3.0')"
+        required: true
+        type: string
     outputs:
-      binaries:
-        description: "JSON array of binary artifact names and paths"
-        value: ${{ jobs.build.outputs.binaries }}
-    secrets:
-      # Optional: if you need to sign or do something extra
-      # SOME_SECRET:
-      #   required: false
+      artifacts:
+        description: "JSON array of artifact names"
+        value: ${{ jobs.collect.outputs.artifacts }}
 
 jobs:
   build:
@@ -24,19 +22,30 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            binary_name: suo-parser
+            ext: tar.xz
+            archive_cmd: tar -cJf
+            binary_name: suo
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            binary_name: suo-parser-aarch64
+            ext: tar.xz
+            archive_cmd: tar -cJf
+            binary_name: suo
           - os: macos-latest
             target: x86_64-apple-darwin
-            binary_name: suo-parser-x86_64
+            ext: zip
+            archive_cmd: zip
+            binary_name: suo
           - os: macos-latest
             target: aarch64-apple-darwin
-            binary_name: suo-parser-aarch64
+            ext: zip
+            archive_cmd: zip
+            binary_name: suo
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            binary_name: suo-parser.exe
+            ext: zip
+            archive_cmd: zip
+            binary_name: suo.exe
+
     steps:
       - uses: actions/checkout@v4
 
@@ -49,28 +58,38 @@ jobs:
       - name: Build binary (release)
         run: cargo build --release --bin suo --target ${{ matrix.target }}
 
-      - name: Prepare artifact
+      - name: Package binary
+        id: package
         run: |
-          BIN_PATH=target/${{ matrix.target }}/release/${{ matrix.binary_name }}
-          ARTIFACT_NAME=suo-parser-${{ matrix.target }}
-          mkdir -p artifacts
-          cp "$BIN_PATH" "artifacts/$ARTIFACT_NAME${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }}
-          echo "artifact=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
-        id: artifact
+          VERSION="${{ inputs.version }}"
+          TARGET="${{ matrix.target }}"
+          EXT="${{ matrix.ext }}"
+          BINARY="${{ matrix.binary_name }}"
+          ARCHIVE="suo-parser-${{ inputs.version }}-${TARGET}.${EXT}"
+          BIN_PATH="target/${TARGET}/release/${BINARY}"
 
-      - name: Upload binary artifact
+          mkdir -p artifacts
+
+          if [ "${{ matrix.ext }}" = "tar.xz" ]; then
+            tar -cJf "artifacts/${ARCHIVE}" -C "$(dirname "${BIN_PATH}")" "$(basename "${BIN_PATH}")"
+          else
+            (cd "$(dirname "${BIN_PATH}")" && zip -q "../artifacts/${ARCHIVE}" "$(basename "${BIN_PATH}")")
+          fi
+
+          echo "artifact=${ARCHIVE}" >> $GITHUB_OUTPUT
+
+      - name: Upload binary archive
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.artifact.outputs.artifact }}
+          name: ${{ steps.package.outputs.artifact }}
           path: artifacts/
           retention-days: 1
 
     outputs:
-      artifact: ${{ steps.artifact.outputs.artifact }}
+      artifact: ${{ steps.package.outputs.artifact }}
 
-  # Collect all artifact names for the caller
   collect:
-    name: Collect artifacts
+    name: Collect artifact names
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -79,9 +98,9 @@ jobs:
         run: |
           ARTIFACTS='['
           for dep in ${{ needs.build.outputs.artifact }}; do
-            ARTIFACTS="$ARTIFACTS\"$dep\","
+            ARTIFACTS="${ARTIFACTS}\"${dep}\","
           done
           ARTIFACTS="${ARTIFACTS%,}]"
-          echo "binaries=$ARTIFACTS" >> $GITHUB_OUTPUT
+          echo "artifacts=${ARTIFACTS}" >> $GITHUB_OUTPUT
     outputs:
-      binaries: ${{ steps.collect.outputs.binaries }}
+      artifacts: ${{ steps.collect.outputs.artifacts }}
