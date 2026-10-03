@@ -20,9 +20,20 @@ jobs:
           toolchain: nightly
           target: wasm32-unknown-unknown
 
+      # `setup-rust-toolchain` bundles rust-cache, but its key includes the
+      # job id and the (unpinned) nightly rustc version, so the cached binary
+      # is never actually restored. Cache the tool explicitly instead.
+      - name: Cache wasm-pack
+        id: wasm-pack-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-pack
+          key: wasm-pack-${{ runner.os }}-0.15.0
+
       - name: Install wasm-pack
+        if: steps.wasm-pack-cache.outputs.cache-hit != 'true'
         run: |
-          cargo install wasm-pack --locked
+          cargo install wasm-pack --locked --version 0.15.0
 
       - name: Test
         run: |
