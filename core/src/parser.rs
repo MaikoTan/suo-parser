@@ -137,8 +137,7 @@ impl<R: Read> Parser<R> {
         let mut before: Option<Time> = None;
         let mut sound: Option<String> = None;
 
-        while self.tokenizer.has_next_token() {
-            let next_token = self.tokenizer.peek_token().unwrap();
+        while let Some(next_token) = self.tokenizer.peek_token() {
             if next_token.kind != TokenKind::Keyword {
                 break;
             }
@@ -216,8 +215,10 @@ impl<R: Read> Parser<R> {
         let mut duration: Option<DurationStmt> = None;
         let mut jump: Option<JumpStmt> = None;
 
-        while self.tokenizer.has_next_token() {
-            let next_token = self.tokenizer.peek_token().unwrap();
+        // Loop on `peek_token` rather than `has_next_token`, for the same
+        // reason as in `parse`: trailing whitespace makes `has_next_token`
+        // report true while `peek_token` returns `None`.
+        while let Some(next_token) = self.tokenizer.peek_token() {
             if next_token.kind != TokenKind::Keyword {
                 break;
             }
@@ -285,8 +286,10 @@ impl<R: Read> Parser<R> {
             panic!("Unexpected token: {:?}", left_brace);
         }
 
-        while self.tokenizer.has_next_token() {
-            let next_token = self.tokenizer.peek_token().unwrap();
+        // Loop on `peek_token` rather than `has_next_token`: an unterminated
+        // brace list leaves only whitespace left, where `has_next_token`
+        // reports true but `peek_token` returns `None`.
+        while let Some(next_token) = self.tokenizer.peek_token() {
             if next_token.kind == TokenKind::Identifier {
                 let key_token = self.tokenizer.next_token().unwrap();
                 if key_token.kind != TokenKind::Identifier {

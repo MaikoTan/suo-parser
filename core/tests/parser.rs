@@ -288,3 +288,53 @@ fn test_multiple_statements() {
         }
         "#);
 }
+
+// Regression tests for the sub-clause loops.
+//
+// Each of these loops ended with `while has_next_token()` followed by
+// `peek_token().unwrap()`. `has_next_token` is true whenever the reader
+// still holds bytes, so once the final sub-clause was consumed only
+// whitespace remained: `has_next_token` said true while `peek_token`
+// returned `None`, and the `unwrap` panicked. Looping on
+// `while let Some(tok) = peek_token()` removes the mismatch.
+
+const TRAILING: [&str; 4] = ["", "\n", "\n\n", " "];
+
+// The `sync`/`window`/`duration`/`jump` loop in `parse_entry_statement`.
+#[test]
+fn test_entry_with_trailing_whitespace() {
+    for ws in TRAILING {
+        let ast = parse(&format!("0.0 \"Test\"{ws}"));
+        assert_eq!(ast.entries.len(), 1, "failed for {ws:?}");
+        assert_eq!(ast.entries[0].name, "Test");
+    }
+}
+
+// The `before`/`sound` loop in `parse_alert_all_statement`.
+#[test]
+fn test_alert_all_with_trailing_whitespace() {
+    for ws in TRAILING {
+        let ast = parse(&format!("alertall \"Test\"{ws}"));
+        assert_eq!(ast.alert_alls.len(), 1, "failed for {ws:?}");
+        assert_eq!(ast.alert_alls[0].name, "Test");
+    }
+}
+
+// The field loop in `parse_net_sync_statement`, reached through an entry
+// whose net-sync braces are the last thing in the file.
+#[test]
+fn test_entry_net_sync_with_trailing_whitespace() {
+    for ws in TRAILING {
+        let ast = parse(&format!("0.0 \"Test\" Ability {{ id: \"1000\" }}{ws}"));
+        assert_eq!(ast.entries.len(), 1, "failed for {ws:?}");
+    }
+}
+
+// A full timeline: each statement ends one of the loops on whitespace.
+#[test]
+fn test_multiple_statements_with_trailing_whitespace() {
+    let ast = parse("hideall \"a\"\n0.0 \"b\"\nalertall \"c\"\n0.0 \"d\" Ability { id: \"1\" }\n");
+    assert_eq!(ast.hide_alls.len(), 1);
+    assert_eq!(ast.alert_alls.len(), 1);
+    assert_eq!(ast.entries.len(), 2);
+}
