@@ -45,8 +45,17 @@ jobs:
           # wasm target needed for npm package (wasm-pack)
           target: wasm32-unknown-unknown
 
+      - name: Cache wasm-pack
+        id: wasm-pack-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-pack
+          key: wasm-pack-${{ runner.os }}-0.15.0
+
       - name: Install wasm-pack
-        run: cargo install wasm-pack --locked
+        if: steps.wasm-pack-cache.outputs.cache-hit != 'true'
+        run: |
+          cargo install wasm-pack --locked --version 0.15.0
 
       # 'prepublishOnly' runs 'npm run build' (wasm-pack) before packing.
       - name: Publish to npm (OIDC)

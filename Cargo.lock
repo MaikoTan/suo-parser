@@ -145,7 +145,7 @@ checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
 
 [[package]]
 name = "suo-parser-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "insta",
  "serde",
@@ -153,7 +153,7 @@ dependencies = [
 
 [[package]]
 name = "suo-parser-wasm"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "console_error_panic_hook",
  "serde-wasm-bindgen",

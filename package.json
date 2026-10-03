@@ -29,8 +29,11 @@
     "bin/"
   ],
   "scripts": {
-    "build": "wasm-pack build wasm --target nodejs --out-dir ../pkg && rm -f pkg/.gitignore",
-    "prepublishOnly": "npm run build"
+    "build": "wasm-pack build wasm --target nodejs --out-dir ../pkg && npm run clean-pkg-gitignore",
+    "clean-pkg-gitignore": "node -e \"require('node:fs').rmSync('pkg/.gitignore',{force:true})\"",
+    "verify-pkg": "node scripts/verify-pkg.mjs",
+    "prepublishOnly": "npm run build && npm run verify-pkg",
+    "prepack": "npm run verify-pkg"
   },
   "engines": {
     "node": ">=12.0.0"
