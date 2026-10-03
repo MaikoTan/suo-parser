@@ -6,10 +6,7 @@ use serde_wasm_bindgen::{from_value, to_value};
 use suo_parser_core::generator::Generator;
 use suo_parser_core::parser::Parser;
 use suo_parser_core::tokenizer::Tokenizer;
-use suo_parser_core::types::semantic_ast::{
-    AlertAllStmt, DefineStmt, DefineType, DurationStmt, EntryStmt, HideAllStmt, JumpStmt,
-    NetSyncStmt, Program, Statement, SyncStmt, Time, WindowStmt,
-};
+use suo_parser_core::types::semantic_ast::Program;
 use wasm_bindgen::prelude::*;
 
 /// Install the panic hook so Rust panics print a readable message to the JS
