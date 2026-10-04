@@ -55,28 +55,61 @@ jobs:
           toolchain: nightly
           target: ${{ matrix.target }}
 
+      # rustup only auto-installs the host target's linker, so cross targets
+      # need their GCC. For aarch64-unknown-linux-gnu this also avoids the
+      # rust-lld Cortex-A53 failure below.
+      - name: Install aarch64 cross toolchain
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      # Rust's target spec unconditionally injects
+      # `-Wl,--fix-cortex-a53-843419` for aarch64-unknown-linux-gnu. The
+      # self-contained rust-lld rejects that flag when cross-linking from an
+      # x86_64 host, so point the build at the system GCC instead.
+      # Scoped to CI rather than a committed .cargo/config.toml, so that local
+      # builds are unaffected on machines without the cross toolchain.
+      # See https://github.com/rust-lang/rust/issues/161486
+      - name: Configure aarch64 linker
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          mkdir -p .cargo
+          cat > .cargo/config.toml <<'EOF'
+          [target.aarch64-unknown-linux-gnu]
+          linker = "aarch64-linux-gnu-gcc"
+          EOF
+
       - name: Build binary (release)
         run: cargo build --release --bin suo --target ${{ matrix.target }}
 
+      # Package with an absolute output path. The previous version cd'd into
+      # the binary's directory and then wrote to a *relative* "../artifacts/..",
+      # which resolved to target/<triple>/artifacts/ - a directory that does not
+      # exist - so every zip target failed with "Could not create output file".
       - name: Package binary
         id: package
+        shell: bash
         run: |
-          VERSION="${{ inputs.version }}"
-          TARGET="${{ matrix.target }}"
-          EXT="${{ matrix.ext }}"
-          BINARY="${{ matrix.binary_name }}"
-          ARCHIVE="suo-parser-${{ inputs.version }}-${TARGET}.${EXT}"
-          BIN_PATH="target/${TARGET}/release/${BINARY}"
+          set -euo pipefail
+          ARCHIVE="suo-parser-${{ inputs.version }}-${{ matrix.target }}.${{ matrix.ext }}"
+          BIN="target/${{ matrix.target }}/release/${{ matrix.binary_name }}"
+          OUT="$PWD/artifacts/$ARCHIVE"
 
+          if [ ! -f "$BIN" ]; then
+            echo "::error::expected binary not found: $BIN"
+            exit 1
+          fi
           mkdir -p artifacts
 
           if [ "${{ matrix.ext }}" = "tar.xz" ]; then
-            tar -cJf "artifacts/${ARCHIVE}" -C "$(dirname "${BIN_PATH}")" "$(basename "${BIN_PATH}")"
+            tar -cJf "$OUT" -C "$(dirname "$BIN")" "$(basename "$BIN")"
           else
-            (cd "$(dirname "${BIN_PATH}")" && zip -q "../artifacts/${ARCHIVE}" "$(basename "${BIN_PATH}")")
+            # -j so the archive path is independent of the current directory.
+            (cd "$(dirname "$BIN")" && zip -q -j "$OUT" "$(basename "$BIN")")
           fi
 
-          echo "artifact=${ARCHIVE}" >> $GITHUB_OUTPUT
+          echo "artifact=${ARCHIVE}" >> "$GITHUB_OUTPUT"
 
       - name: Upload binary archive
         uses: actions/upload-artifact@v4
