@@ -83,8 +83,23 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # npm 11.5.1+ is required for trusted publishing (OIDC): earlier
+          # versions never request an OIDC token and fail the PUT with a
+          # misleading "404 ... is not in this registry". Node 22 ships npm 10,
+          # so install npm 11 explicitly rather than relying on the bundled one.
+          node-version: 22
           registry-url: https://registry.npmjs.org
+
+      - name: Upgrade npm for trusted publishing
+        run: |
+          npm install -g npm@latest
+          # Fail loudly here rather than at the registry with a misleading 404.
+          npm_major=$(npm --version | cut -d. -f1)
+          if [ "$npm_major" -lt 11 ]; then
+            echo "::error::npm $(npm --version) cannot do OIDC trusted publishing; need >= 11.5.1"
+            exit 1
+          fi
+          echo "npm $(npm --version) is ready for trusted publishing"
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
