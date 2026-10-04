@@ -1,0 +1,16 @@
+[workspace]
+members = [
+  "core",
+  "wasm"
+]
+
+resolver = "2"
+
+[workspace.dependencies]
+insta = { version = "1.43.1", features = ["yaml"] }
+
+[profile.release]
+lto = true
+strip = "symbols"
+# `opt-level` is already 3 for release, so it is not repeated here.
+codegen-units = 1

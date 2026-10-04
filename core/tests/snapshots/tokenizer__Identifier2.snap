@@ -1,0 +1,50 @@
+---
+source: core/tests/tokenizer.rs
+expression: vec
+---
+[
+    Token {
+        kind: Identifier,
+        value: Some(
+            "identifier",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 1,
+                offset: 0,
+            },
+            end: Position {
+                line: 1,
+                column: 11,
+                offset: 10,
+            },
+        },
+        range: (
+            0,
+            10,
+        ),
+    },
+    Token {
+        kind: Identifier,
+        value: Some(
+            "identifier",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 2,
+                column: 1,
+                offset: 11,
+            },
+            end: Position {
+                line: 2,
+                column: 11,
+                offset: 21,
+            },
+        },
+        range: (
+            11,
+            21,
+        ),
+    },
+]

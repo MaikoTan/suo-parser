@@ -1,0 +1,28 @@
+---
+source: core/tests/tokenizer.rs
+expression: vec
+---
+[
+    Token {
+        kind: StringLiteral,
+        value: Some(
+            "name",
+        ),
+        loc: SourceLocation {
+            start: Position {
+                line: 1,
+                column: 1,
+                offset: 0,
+            },
+            end: Position {
+                line: 1,
+                column: 7,
+                offset: 6,
+            },
+        },
+        range: (
+            0,
+            6,
+        ),
+    },
+]

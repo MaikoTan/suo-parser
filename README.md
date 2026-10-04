@@ -12,11 +12,13 @@
 
 ## Features
 
-* Parse a timeline file into AST that is compatible with [ESTree](https://github.com/estree/estree).
+* Parse a timeline file into an AST.
 
-  > The AST types are defined in [src/types.ts](src/types.ts).
+  > The AST types are defined in [`core/src/types.rs`](core/src/types.rs).
 
 * Transform a timeline file to a specific format (currently, only [cactbot](https://github.com/OverlayPlugin/cactbot/blob/main/docs/TimelineGuide.md#timeline-file-syntax) style is supported).
+
+* Tokenize a timeline file, for debugging.
 
 ## Install
 
@@ -27,9 +29,85 @@ $ npm install suo-parser
 $ yarn add suo-parser
 ```
 
-And then you can run `suo <filename>` to transform a timeline file to a specifical format.
+## Usage
 
-> If you are using yarn, you can run `yarn suo <filename>` instead.
+### Command line
+
+Round-trip a timeline file through the parser and generator:
+
+```bash
+$ suo-parser timeline.txt
+0.0 "--Reset--" sync / 00:0839:.*is no longer sealed/ duration 5 window 10000 jump 0
+```
+
+Print the AST as JSON instead:
+
+```bash
+$ suo-parser --ast timeline.txt
+```
+
+Read from stdin by omitting the file or passing `-`:
+
+```bash
+$ cat timeline.txt | suo-parser
+```
+
+> If you are using yarn, you can run `yarn suo-parser <filename>` instead.
+
+### Library
+
+The package ships a WebAssembly build. All functions are synchronous.
+
+```js
+const { parse, transform, generate, tokenize, version } = require("suo-parser")
+
+// Parse into an AST: { defines, hide_alls, alert_alls, entries }
+const ast = parse('0.0 "Test" sync /re/')
+ast.entries[0].name // => "Test"
+
+// Round-trip a timeline back to text
+transform('0.0 "Test" sync /re/') // => '0.0 "Test" sync /re/'
+
+// Generate text from an AST
+generate(ast)
+
+// Inspect the token stream (useful when a timeline fails to parse)
+tokenize('0.0 "Test"')
+
+version() // => "0.3.0-rc.1"
+```
+
+Times are a tagged union, because the grammar allows both integers and floats:
+
+```js
+ast.entries[0].time // => { Float: 0 }  or  { Integer: 0 }
+```
+
+`parse` throws on malformed input. The wasm bindings install a panic hook, so
+the underlying message is printed to stderr before the throw.
+
+## Migrating from 0.2.x
+
+> **Note**: `0.3.0` is currently a release candidate. Install it with
+> `npm install suo-parser@next`, since prereleases are published under the
+> `next` dist-tag rather than `latest`.
+
+`0.3.0` replaces the TypeScript + napi-rs implementation with a Rust +
+WebAssembly one, and the API is different:
+
+| 0.2.x                                  | 0.3.0                                    |
+| -------------------------------------- | ---------------------------------------- |
+| `parse(code, callback)`                | `parse(code)` — synchronous             |
+| `parseAsync(code)`                     | removed — `parse` is already synchronous |
+| `parseFile` / `parseFileAsync`         | removed — read the file yourself         |
+| `generate(ast, callback)`              | `generate(ast)` — synchronous           |
+| `generateAsync(ast)`                   | removed — `generate` is synchronous     |
+| `transformAsync(code)`                 | removed — `transform` is synchronous    |
+| `transformFile` / `transformFileAsync` | removed — read the file yourself         |
+| `suo` binary                           | renamed to `suo-parser`                 |
+
+The AST shape also changed; it is now a plain object with `defines`,
+`hide_alls`, `alert_alls` and `entries` keys.
 
 ## Supporting Timeline Grammar
 
