@@ -74,7 +74,7 @@ generate(ast)
 // Inspect the token stream (useful when a timeline fails to parse)
 tokenize('0.0 "Test"')
 
-version() // => "0.3.0"
+version() // => "0.3.0-rc.1"
 ```
 
 Times are a tagged union, because the grammar allows both integers and floats:
@@ -87,6 +87,10 @@ ast.entries[0].time // => { Float: 0 }  or  { Integer: 0 }
 the underlying message is printed to stderr before the throw.
 
 ## Migrating from 0.2.x
+
+> **Note**: `0.3.0` is currently a release candidate. Install it with
+> `npm install suo-parser@next`, since prereleases are published under the
+> `next` dist-tag rather than `latest`.
 
 `0.3.0` replaces the TypeScript + napi-rs implementation with a Rust +
 WebAssembly one, and the API is different:

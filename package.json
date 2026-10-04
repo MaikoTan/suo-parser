@@ -1,6 +1,6 @@
 {
   "name": "suo-parser",
-  "version": "0.3.0",
+  "version": "0.3.0-rc.1",
   "description": "A timeline parser for FFXIV/ACT plugins",
   "main": "pkg/suo_parser_wasm.js",
   "types": "pkg/suo_parser_wasm.d.ts",
