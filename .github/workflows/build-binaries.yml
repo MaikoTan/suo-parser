@@ -104,9 +104,28 @@ jobs:
 
           if [ "${{ matrix.ext }}" = "tar.xz" ]; then
             tar -cJf "$OUT" -C "$(dirname "$BIN")" "$(basename "$BIN")"
-          else
-            # -j so the archive path is independent of the current directory.
+          elif command -v zip >/dev/null 2>&1; then
+            # -j so the stored name does not depend on the current directory.
             (cd "$(dirname "$BIN")" && zip -q -j "$OUT" "$(basename "$BIN")")
+          else
+            # Git Bash on windows-latest does not ship `zip`, but PowerShell's
+            # Compress-Archive is always present. `cygpath -w` converts the
+            # MSYS paths to native Windows paths, which PowerShell requires.
+            echo "zip not found; falling back to Compress-Archive"
+            TEMP_DIR="$(mktemp -d)"
+            cp "$BIN" "$TEMP_DIR/$(basename "$BIN")"
+            TEMP_ZIP="$TEMP_DIR/out.zip"
+            WIN_ZIP="$(cygpath -w "$TEMP_ZIP")"
+            WIN_FILE="$(cygpath -w "$TEMP_DIR/$(basename "$BIN")")"
+            powershell -NoProfile -Command \
+              "Compress-Archive -LiteralPath '$WIN_FILE' -DestinationPath '$WIN_ZIP' -Force"
+            mv "$TEMP_ZIP" "$OUT"
+            rm -rf "$TEMP_DIR"
+          fi
+
+          if [ ! -f "$OUT" ]; then
+            echo "::error::archive was not created: $OUT"
+            exit 1
           fi
 
           echo "artifact=${ARCHIVE}" >> "$GITHUB_OUTPUT"
